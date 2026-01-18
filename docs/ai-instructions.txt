@@ -1,0 +1,153 @@
+PROMPT:
+
+I would like you to build an application to manage GPX files with the following capabilities:
+* upload one or more GPX files
+* download one or more GPX files
+* browse gpx files with preview and metadata (trip length, stop count, riding time)
+* the map provider should be openstreetmap
+
+Technology Stack:
+* It should be a web application build in javascript.
+* Frontend only
+* Single page
+* All application data should be kept in the browser during runtime. It should be possible to export all data as sqlite database file. In case the browser cache is cleared, it should be possible to upload this sqlite database file to restore all data in the application.
+
+GPX Upload:
+* the maximum file size is 20MB
+* multiple files can be uploaded simultaneously (multiselect)
+* the total number of files is 2500
+
+GPX file management:
+* display a list of gpx files and folders (use the gpx file name, or folder name in the list)
+* folders can be created
+* double clicking on a folder refreshes the list and shows the contents of the folder.
+* On top of the list, the current folder path is listed. Starting with "/", when no folder is selected (root level).
+* gpx files are uploaded to the folder that's currently open
+* highlighting a gpx file will show a preview next to the list that shows a openstreetmap map with all routes and tracks and waypoints that the gpx contains. every route and every track should be displayed in a different color. The color should have a clear contrast to the background map colors. The line opacity for routes and tracks should be 30%, so overlapping paths can be seen.
+* double click on a gpx file will be handled like a folder: the list will refresh and now show the GPX content. The GPX content will be visualized in 3 sections within the list. A header with "Routes" and list routes underneath, header with "Tracks" and list all tracks underneath, header with "Waypoints" and list all waypoints underneath.
+* Upload and downloads buttons are always on the screen. Every level can be downloaded. On folder level a zip file will be created that contains the gpx files within this folder. On gpx level, the gpx file will be downloaded. Within a gpx file the route or track or waypoint is extracted and downloaded as a newly generated gpx file, which only contains the selected route, track or waypoint. Multiselect is always possible on any level. If multiple folders are selected, create and download a zip file that contains the folders and the gpx files within. If multiple gpx files are selected, create and download a zip file that contains all selected gpx files. If multiple elements (tracks, routes, waypoints) are selected from within a gpx file, create a gpx file that contains these elements and download it.
+* Above the list, there is a filter, which can filter by name, distance, waypoints, length, riding time
+* It should be possible to rename each element within the list (gpx, folders, and tracks, routes, waypoints within the gpx file)
+
+GPX Specification:
+* The application should support the upload of GPX 1.1 and normalize them to GPX 1.0.
+* The normalization should work the following way: If no track is present, a track should be created following the route according to GPX 1.1 and Garmin extensions. Once this track is created, all extension should be discarded and the file should be saved as GPX 1.0.
+* Downloaded gpx files are always GPX 1.0.
+
+Authentication:
+* No authentication is necessary.
+
+The audience for the application are motorcylcle riders.
+
+
+RESPONSE:
+Excellent, I have a clear picture now. Let me confirm a few final technical details before I start:
+
+## Final Clarifications
+
+**1. SQLite in Browser**
+- Should I use **sql.js** (SQLite compiled to WebAssembly for browser use)? This seems the best fit for your requirements.
+- Database export/import format: raw SQLite .db file?
+
+**2. GPX File Storage Strategy**
+- Store original GPX files as BLOBs in SQLite OR parse and store only the normalized GPX 1.0 data?
+- My recommendation: Store normalized GPX 1.0 (saves space, ensures consistency). Original file is lost after normalization. Acceptable?
+
+**3. Data Persistence**
+- Use IndexedDB to persist the SQLite database between sessions until browser cache is cleared?
+- Or purely in-memory with manual export/import only?
+
+**4. Metadata Calculations**
+For "trip length, stop count, riding time":
+- **Trip length**: Total distance of all track segments calculated from coordinates?
+- **Stop count**: Number of waypoints OR pauses detected in track (timestamp gaps)? Please clarify.
+- **Riding time**: Total time from first to last trackpoint OR exclude stops (requires stop detection)? Please clarify.
+
+**5. GPX 1.1 to 1.0 Normalization - Route to Track Conversion**
+GPX 1.1 routes are just waypoints without detailed path data. To create a track:
+- Option A: Connect route points with straight lines (simple, no routing engine needed)
+- Option B: Use routing service (like OSRM/OpenRouteService) to get actual road path between waypoints (requires external API, more realistic)
+- Which approach?
+
+**6. Garmin Extensions**
+Which specific Garmin extensions should be handled during normalization? Common ones:
+- `<gpxtpx:TrackPointExtension>` (heart rate, cadence, temperature)
+- `<gpxx:RouteExtension>` 
+- Just discard all `<extensions>` blocks as you mentioned?
+
+**7. Map Preview**
+- Should the map auto-zoom to fit all tracks/routes/waypoints of the selected GPX?
+- Show waypoint markers with labels/names?
+
+**8. UI Libraries**
+Confirmed stack:
+- Bootstrap (which version? 5.x?)
+- jQuery (which version? 3.x?)
+- Leaflet.js for OpenStreetMap integration?
+- JSZip for ZIP file creation?
+- sql.js for SQLite?
+
+**9. Filter Details**
+Filter by "distance, waypoints, length, riding time":
+- Distance and length are the same, correct?
+- Filter should support ranges (e.g., "distance 50-100km") or just text search?
+
+**10. Multi-select Behavior**
+- Use checkboxes for multi-select or Ctrl/Cmd+Click?
+
+Please answer these and I'll start building your motorcycle route management application with proper architecture, unit tests, and documentation.
+
+PROMPT:
+
+Before answering your questions, here is some additional information about the application:
+
+There should be a routing strategy selection for each route. If no routing strategy is selected, a strategy should be used that comes close to what navigation systems call "road, fast".
+Available routing strategies:
+* "Road": This is the default strategy, which allows the use of any road suited for motorcycles
+* "Road - Avoid Motorway": The same as "Road", but avoids the use of Motorways. It still tries to find the fastest way under these conditions.
+* "Curvy": This strategy tries to find a path with many curves, while avoiding traffic lights and cities at the expense of a longer route. It avoids unpaved roads.
+* "Prefer Unpaved": Same as "Curvy", but includes unpaved roads into the calculation.
+
+All strategies should adhere to road rules and legal requirements. The basis for road surfaces and speed limits is openstreetmap data.
+
+These routing strategies should be applied whenever route is displayed on a map.
+
+Now I answer your questions:
+
+SQLite in Browser:
+* yes, use sql.js
+* yes, allow the import/export of the raw sqlite.db file. Call it "route_library.db"
+
+GPX File Storage Strategy:
+* I follow your recommendation to only store the GPX 1.0 file
+
+Data Persistence
+* Use IndexdDB. Import export should only be necessary after the browser cache is cleared, or a different browser or computer is used.
+
+Metadata Calculations:
+* Trip length: On a selection that contains multiple trips, show the number of trips and the summary of all trips in length. Apply the routing strategy as described above for the calculations.
+* Stop count: Number of waypoints
+* Riding time: exclude stops, calculate pure riding time as per the selected routing strategy. If multiple files are selected, show number of files and the combined riding time.
+
+GPX 1.1 to 1.0 Normalization - Route to Track conversation:
+* Is there a possibility to apply the routing strategies locally? I'd like the application to be able to work offline.
+
+Garmin Extensions:
+* discard the TrackPointExtension
+* If no waypoints are present, create waypoints from the RouteExtension, then discard the RouteExtension.
+* Some extension may be necessary, let's decide case by case.
+
+Map Preview:
+* Yes, the map should auto-zoom to fit all tracks/routes/waypoints of the selected GPX.
+* Waypoints markers should be displayed with labels and names.
+
+UI Libraries:
+* I confirm all versions.
+
+Filter Details:
+* Yes, let's use the term Length instead of distance
+* use text fields when searching for names and ranges for number, length and time fields.
+
+Multi-select Behavior:
+* use Ctrl/Cmd+Click
+
