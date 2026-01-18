@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>UI Debug</title>
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/sql-wasm.js"></script>
+</head>
+<body>
+    <h1>UI Debug - Check Main Database</h1>
+    <button onclick="checkDatabase()">Check Main Database</button>
+    <pre id="output"></pre>
+
+    <script src="js/database.js"></script>
+    <script src="js/file-manager.js"></script>
+
+    <script>
+        async function checkDatabase() {
+            const output = document.getElementById('output');
+            output.textContent = 'Checking...\n';
+
+            try {
+                // Initialize with MAIN database (not a test database)
+                await Database.init('gpx_library_db');
+                output.textContent += '✓ Main database initialized\n\n';
+
+                // Get all GPX files
+                const gpxFiles = Database.query('SELECT * FROM gpx_files ORDER BY id');
+                output.textContent += `Found ${gpxFiles.length} GPX files:\n`;
+                gpxFiles.forEach(file => {
+                    output.textContent += `  [${file.id}] ${file.name}\n`;
+                });
+                output.textContent += '\n';
+
+                // For each GPX file, check its contents
+                gpxFiles.forEach(file => {
+                    output.textContent += `\nGPX File ID ${file.id}: "${file.name}"\n`;
+                    output.textContent += '='.repeat(80) + '\n';
+
+                    const routes = Database.query('SELECT * FROM routes WHERE gpx_file_id = ? ORDER BY id', [file.id]);
+                    output.textContent += `Routes: ${routes.length}\n`;
+                    routes.forEach(route => {
+                        output.textContent += `  [${route.id}] index_in_gpx:${route.index_in_gpx} "${route.name}"\n`;
+                    });
+
+                    const tracks = Database.query('SELECT * FROM tracks WHERE gpx_file_id = ? ORDER BY id', [file.id]);
+                    output.textContent += `\nTracks: ${tracks.length}\n`;
+                    tracks.forEach(track => {
+                        output.textContent += `  [${track.id}] index_in_gpx:${track.index_in_gpx} "${track.name}"\n`;
+                    });
+
+                    const waypoints = Database.query('SELECT * FROM waypoints WHERE gpx_file_id = ? ORDER BY id', [file.id]);
+                    output.textContent += `\nWaypoints: ${waypoints.length}\n`;
+                    waypoints.forEach(wp => {
+                        output.textContent += `  [${wp.id}] "${wp.name}"\n`;
+                    });
+                    output.textContent += '\n';
+                });
+
+                // Test FileManager.getGpxContents()
+                if (gpxFiles.length > 0) {
+                    const testGpxId = gpxFiles[0].id;
+                    output.textContent += '\n' + '='.repeat(80) + '\n';
+                    output.textContent += `Testing FileManager.getGpxContents(${testGpxId}):\n`;
+                    output.textContent += '='.repeat(80) + '\n';
+
+                    const contents = FileManager.getGpxContents(testGpxId);
+                    output.textContent += `Routes returned: ${contents.routes.length}\n`;
+                    output.textContent += `Tracks returned: ${contents.tracks.length}\n`;
+                    output.textContent += `Waypoints returned: ${contents.waypoints.length}\n`;
+
+                    if (contents.routes.length > 0) {
+                        output.textContent += '\nRoute objects:\n';
+                        contents.routes.forEach((route, i) => {
+                            output.textContent += `  [${i}] ${JSON.stringify(route)}\n`;
+                        });
+                    }
+                }
+
+            } catch (error) {
+                output.textContent += '\n✗ ERROR: ' + error.message + '\n';
+                output.textContent += error.stack;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -111,40 +111,52 @@ const UIController = (function() {
      * Render GPX contents
      */
     function renderGpxContents(gpxId, $container) {
+        console.log('renderGpxContents called with gpxId:', gpxId);
         const contents = FileManager.getGpxContents(gpxId);
-        
+        console.log('Contents returned:', contents);
+        console.log('Routes:', contents.routes.length, 'Tracks:', contents.tracks.length, 'Waypoints:', contents.waypoints.length);
+
         // Add ".." navigation to go back to folder view
         const $parentItem = createParentNavigationItem();
         $container.append($parentItem);
-        
+
         // Routes section
         if (contents.routes.length > 0) {
+            console.log('Rendering', contents.routes.length, 'routes');
             $container.append('<div class="gpx-section-header">Routes</div>');
             contents.routes.forEach(route => {
                 const metadata = `${route.length_km.toFixed(1)}km • ${route.riding_time_hours.toFixed(1)}h`;
                 const $item = createFileItem('route', route.id, route.name, '➡️', metadata);
                 $container.append($item);
             });
+        } else {
+            console.log('No routes to render');
         }
-        
+
         // Tracks section
         if (contents.tracks.length > 0) {
+            console.log('Rendering', contents.tracks.length, 'tracks');
             $container.append('<div class="gpx-section-header">Tracks</div>');
             contents.tracks.forEach(track => {
                 const metadata = `${track.length_km.toFixed(1)}km • ${track.riding_time_hours.toFixed(1)}h`;
                 const $item = createFileItem('track', track.id, track.name, '🛣️', metadata);
                 $container.append($item);
             });
+        } else {
+            console.log('No tracks to render');
         }
-        
+
         // Waypoints section
         if (contents.waypoints.length > 0) {
+            console.log('Rendering', contents.waypoints.length, 'waypoints');
             $container.append('<div class="gpx-section-header">Waypoints</div>');
             contents.waypoints.forEach(waypoint => {
                 const metadata = `${waypoint.lat.toFixed(4)}, ${waypoint.lon.toFixed(4)}`;
                 const $item = createFileItem('waypoint', waypoint.id, waypoint.name, '📍', metadata);
                 $container.append($item);
             });
+        } else {
+            console.log('No waypoints to render');
         }
     }
     
