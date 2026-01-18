@@ -43,20 +43,28 @@ const GPXNormalizer = (function() {
         
         // Process waypoints
         let waypoints = [...(gpxData.waypoints || [])];
-        
-        // Extract waypoints from Garmin route extensions if no waypoints exist
-        if (waypoints.length === 0 && gpxData.routes) {
+
+        // If no waypoints exist, create waypoints from route points
+        if (waypoints.length === 0 && gpxData.routes && gpxData.routes.length > 0) {
             gpxData.routes.forEach(route => {
-                if (route.extensions && route.extensions.length > 0) {
-                    waypoints = waypoints.concat(route.extensions.map(ext => ({
-                        lat: ext.lat,
-                        lon: ext.lon,
-                        name: ext.name || 'Waypoint'
-                    })));
+                if (route.points && route.points.length > 0) {
+                    // Add waypoints from route points
+                    route.points.forEach((pt, index) => {
+                        waypoints.push({
+                            lat: pt.lat,
+                            lon: pt.lon,
+                            name: pt.name || `${route.name || 'Route'} Point ${index + 1}`,
+                            ele: pt.ele,
+                            desc: null,
+                            time: null,
+                            sym: null,
+                            type: null
+                        });
+                    });
                 }
             });
         }
-        
+
         // Add waypoints to GPX
         waypoints.forEach(wpt => {
             const wptElement = doc.createElement('wpt');
@@ -75,7 +83,25 @@ const GPXNormalizer = (function() {
             gpxElement.appendChild(wptElement);
         });
 
-        // Add routes to GPX (preserve original routes)
+        // Build list of tracks (existing + generated from routes)
+        const tracks = [...(gpxData.tracks || [])];
+        const existingTrackNames = new Set(tracks.map(t => t.name || 'Unnamed Track'));
+
+        // For each route, create a track if one with the same name doesn't exist
+        // This preserves the route WITH extensions before cleanup
+        if (gpxData.routes && gpxData.routes.length > 0) {
+            gpxData.routes.forEach(route => {
+                const routeName = route.name || 'Unnamed Track';
+
+                // Only create a track if one with this name doesn't already exist
+                if (!existingTrackNames.has(routeName)) {
+                    const track = convertRouteToTrack(route);
+                    tracks.push(track);
+                }
+            });
+        }
+
+        // Add routes to GPX (as GPX 1.0, without extensions)
         if (gpxData.routes && gpxData.routes.length > 0) {
             gpxData.routes.forEach(route => {
                 const rteElement = doc.createElement('rte');
@@ -92,22 +118,12 @@ const GPXNormalizer = (function() {
                     if (pt.ele !== null && pt.ele !== undefined) {
                         addElement(doc, rteptElement, 'ele', pt.ele.toFixed(1));
                     }
+                    // Note: Extensions are discarded for GPX 1.0 compatibility
 
                     rteElement.appendChild(rteptElement);
                 });
 
                 gpxElement.appendChild(rteElement);
-            });
-        }
-
-        // Convert routes to tracks if no tracks exist (for backward compatibility)
-        const tracks = [...(gpxData.tracks || [])];
-
-        if (tracks.length === 0 && gpxData.routes && gpxData.routes.length > 0) {
-            // Convert routes to tracks
-            gpxData.routes.forEach(route => {
-                const track = convertRouteToTrack(route);
-                tracks.push(track);
             });
         }
 
@@ -156,19 +172,20 @@ const GPXNormalizer = (function() {
     
     /**
      * Convert route to track
-     * For now, this creates a simple track by connecting route points
-     * In the future, this will use routing strategies
+     * Preserves the route data WITH extensions before they're stripped for GPX 1.0
+     * This allows users to compare the original route with the cleaned version
      */
     function convertRouteToTrack(route) {
         const track = {
-            name: route.name || 'Track from Route',
+            name: route.name || 'Unnamed Track',
             desc: route.desc,
             segments: [{
                 points: []
             }]
         };
-        
+
         // Simple conversion: route points become track points
+        // This preserves the original route geometry before extension cleanup
         route.points.forEach(point => {
             track.segments[0].points.push({
                 lat: point.lat,
@@ -177,7 +194,7 @@ const GPXNormalizer = (function() {
                 time: null // No time information from route points
             });
         });
-        
+
         return track;
     }
     
