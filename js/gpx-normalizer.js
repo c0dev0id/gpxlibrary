@@ -285,13 +285,6 @@ const GPXNormalizer = (function() {
     }
     
     /**
-     * Count waypoints in GPX data
-     */
-    function countWaypoints(gpxData) {
-        return (gpxData.waypoints || []).length;
-    }
-
-    /**
      * Calculate route length from array of points
      * @param {Array} points - Array of {lat, lon} objects
      * @returns {Number} Length in kilometers
@@ -324,7 +317,6 @@ const GPXNormalizer = (function() {
         normalize,
         calculateLength,
         calculateRidingTime,
-        countWaypoints,
         calculateDistance,
         calculateRouteLength,
         calculateTrackLength

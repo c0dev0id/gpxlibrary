@@ -316,28 +316,6 @@ const Database = (function() {
     }
     
     /**
-     * Begin transaction
-     */
-    function beginTransaction() {
-        db.run('BEGIN TRANSACTION');
-    }
-    
-    /**
-     * Commit transaction
-     */
-    async function commit() {
-        db.run('COMMIT');
-        await saveToIndexedDB();
-    }
-    
-    /**
-     * Rollback transaction
-     */
-    function rollback() {
-        db.run('ROLLBACK');
-    }
-
-    /**
      * Delete database and reinitialize (for development)
      */
     async function deleteAndReinitialize() {
@@ -381,9 +359,6 @@ const Database = (function() {
         exportDatabase,
         importDatabase,
         saveToIndexedDB,
-        beginTransaction,
-        commit,
-        rollback,
         deleteAndReinitialize
     };
 })();
