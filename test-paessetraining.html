@@ -61,10 +61,22 @@
                 log('TEST REPORT: Paessetraining Vogesen 2026 (Anfahrt).gpx');
                 log('='.repeat(80));
                 log('');
-                // Initialize database
-                output.append('<div class="section"><h2>1. Initializing Database</h2>');
-                await Database.init();
-                output.append('<p class="success">✓ Database initialized</p></div>');
+
+                // Initialize database (delete first to start fresh)
+                output.append('<div class="section"><h2>1. Delete and Reinitialize Database</h2>');
+                log('STEP 1: Delete and Reinitialize Database');
+                log('-'.repeat(80));
+                try {
+                    await Database.deleteAndReinitialize();
+                    output.append('<p class="success">✓ Database deleted and reinitialized</p>');
+                    log('✓ Database deleted and reinitialized');
+                } catch (e) {
+                    await Database.init();
+                    output.append('<p class="success">✓ Database initialized</p>');
+                    log('✓ Database initialized');
+                }
+                output.append('</div>');
+                log('');
 
                 // Load test file
                 output.append('<div class="section"><h2>2. Loading Test File</h2>');
@@ -261,16 +273,53 @@
                     output.append(`<p class="success">✓ Waypoints: 3 (correct)</p>`);
                 }
 
+                log('');
+                log('Validation:');
+                log('-'.repeat(80));
+                if (routes.length !== 6) {
+                    log(`✗ Expected 6 routes, got ${routes.length}`);
+                } else {
+                    log(`✓ Routes: 6 (correct)`);
+                }
+
+                if (tracks.length !== 6) {
+                    log(`✗ Expected 6 tracks, got ${tracks.length}`);
+                } else {
+                    log(`✓ Tracks: 6 (correct - generated from routes)`);
+                }
+
+                if (waypoints.length !== 3) {
+                    log(`✗ Expected 3 waypoints, got ${waypoints.length}`);
+                } else {
+                    log(`✓ Waypoints: 3 (correct)`);
+                }
+
                 if (allGood) {
                     output.append('<h2 class="success">✓ ALL TESTS PASSED!</h2>');
+                    log('');
+                    log('✓ ALL TESTS PASSED!');
                 } else {
                     output.append('<h2 class="error">✗ TESTS FAILED!</h2>');
+                    log('');
+                    log('✗ TESTS FAILED!');
                 }
 
                 output.append('</div>');
 
+                log('');
+                log('='.repeat(80));
+                log('END OF TEST');
+                log('='.repeat(80));
+
+                // Display copyable output
+                copyOutput.text(testResults.join('\n'));
+
             } catch (error) {
                 output.append(`<div class="section"><p class="error">✗ ERROR: ${error.message}</p><pre>${error.stack}</pre></div>`);
+                log('');
+                log('✗ ERROR: ' + error.message);
+                log(error.stack);
+                copyOutput.text(testResults.join('\n'));
             }
         }
 
