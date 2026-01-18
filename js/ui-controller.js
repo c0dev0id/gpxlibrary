@@ -327,6 +327,21 @@ const UIController = (function() {
             renderFileList();
             MapPreview.displayGpx(id);
             updatePreviewFromGpxId(id);
+        } else if (type === 'waypoint') {
+            // Copy waypoint coordinates to clipboard
+            const waypoint = Database.query('SELECT lat, lon, name FROM waypoints WHERE id = ?', [id])[0];
+            if (waypoint) {
+                const coords = `${waypoint.lat.toFixed(6)}, ${waypoint.lon.toFixed(6)}`;
+                navigator.clipboard.writeText(coords)
+                    .then(() => {
+                        // Show temporary notification
+                        const name = waypoint.name || 'Waypoint';
+                        updatePreviewTitle(`Copied to clipboard: ${name}`, coords);
+                    })
+                    .catch(err => {
+                        alert('Failed to copy coordinates to clipboard');
+                    });
+            }
         }
     }
     
