@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modal Dialog Tests</title>
+
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #007bff;
+            padding-bottom: 10px;
+        }
+
+        .test-summary {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .status {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .status.success {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .status.failure {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .status.running {
+            background-color: #ffc107;
+            color: #333;
+        }
+
+        .metric {
+            display: inline-block;
+            margin-right: 20px;
+            padding: 8px 15px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .metric.passed {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .metric.failed {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .metric.total {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+
+        #console {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 600px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+
+        .error {
+            color: #f48771;
+        }
+
+        .success {
+            color: #89d185;
+        }
+
+        .info {
+            color: #75beff;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px 5px 10px 0;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <h1>Modal Dialog Tests</h1>
+
+    <div class="test-summary">
+        <h2>Test Summary</h2>
+        <div id="overallStatus">
+            <span class="status running">Initializing...</span>
+        </div>
+        <div class="test-results" id="overallResults" style="margin-top: 15px;">
+            <span class="metric total">Total: <span id="totalTests">0</span></span>
+            <span class="metric passed">Passed: <span id="passedTests">0</span></span>
+            <span class="metric failed">Failed: <span id="failedTests">0</span></span>
+        </div>
+    </div>
+
+    <button id="runTestsBtn" onclick="runTests()" disabled>Run Tests</button>
+
+    <h3>Console Output</h3>
+    <div id="console"></div>
+
+    <!-- Load CSS for modals and toasts -->
+    <link rel="stylesheet" href="../css/style.css">
+
+    <!-- External Libraries -->
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+
+    <!-- Application Modules -->
+    <script src="../js/toast.js"></script>
+    <script src="../js/modal.js"></script>
+
+    <script>
+        // Override console methods to capture output
+        const consoleOutput = document.getElementById('console');
+        const originalLog = console.log;
+        const originalError = console.error;
+
+        function appendToConsole(message, className = '') {
+            const span = document.createElement('span');
+            span.textContent = message + '\n';
+            if (className) {
+                span.className = className;
+            }
+            consoleOutput.appendChild(span);
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            const message = args.join(' ');
+            if (message.startsWith('✓')) {
+                appendToConsole(message, 'success');
+            } else if (message.startsWith('✗')) {
+                appendToConsole(message, 'error');
+            } else {
+                appendToConsole(message, 'info');
+            }
+        };
+
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            appendToConsole(args.join(' '), 'error');
+        };
+
+        // Initialize
+        let initialized = false;
+
+        function initialize() {
+            try {
+                console.log('Initializing Modal and Toast systems...');
+                Toast.init();
+                Modal.init();
+
+                initialized = true;
+                console.log('Initialization complete');
+
+                document.getElementById('overallStatus').innerHTML =
+                    '<span class="status" style="background-color: #17a2b8; color: white;">Ready to Run</span>';
+                document.getElementById('runTestsBtn').disabled = false;
+            } catch (error) {
+                console.error('Initialization failed:', error);
+                document.getElementById('overallStatus').innerHTML =
+                    '<span class="status failure">Initialization Failed</span>';
+            }
+        }
+
+        // Test framework
+        let totalTests = 0;
+        let passedTests = 0;
+        let failedTests = 0;
+
+        function assert(condition, message) {
+            totalTests++;
+            if (condition) {
+                passedTests++;
+                console.log(`✓ ${message}`);
+            } else {
+                failedTests++;
+                console.error(`✗ ${message}`);
+                throw new Error(message);
+            }
+        }
+
+        function assertEquals(actual, expected, message) {
+            assert(actual === expected, `${message} (expected: ${expected}, got: ${actual})`);
+        }
+
+        function assertNotNull(value, message) {
+            assert(value !== null && value !== undefined, message);
+        }
+
+        async function runTest(name, testFn) {
+            console.log(`\n--- ${name} ---`);
+            try {
+                await testFn();
+                console.log(`✓ ${name} passed`);
+            } catch (error) {
+                console.error(`✗ ${name} failed: ${error.message}`);
+            }
+        }
+
+        // Tests
+        async function testModalConfirm() {
+            console.log('Testing Modal.confirm()...');
+
+            // Test confirm with OK
+            setTimeout(() => {
+                const confirmBtn = document.querySelector('.modal-confirm-btn');
+                if (confirmBtn) confirmBtn.click();
+            }, 100);
+
+            const result1 = await Modal.confirm('Test confirmation', 'Test');
+            assertEquals(result1, true, 'Modal.confirm should return true when OK is clicked');
+
+            // Test confirm with Cancel
+            setTimeout(() => {
+                const cancelBtn = document.querySelector('.modal-cancel');
+                if (cancelBtn) cancelBtn.click();
+            }, 100);
+
+            const result2 = await Modal.confirm('Test confirmation 2', 'Test');
+            assertEquals(result2, false, 'Modal.confirm should return false when Cancel is clicked');
+
+            // Test confirm with Escape key
+            setTimeout(() => {
+                const event = new KeyboardEvent('keydown', { key: 'Escape' });
+                document.querySelector('.modal-container').dispatchEvent(event);
+            }, 100);
+
+            const result3 = await Modal.confirm('Test confirmation 3', 'Test');
+            assertEquals(result3, false, 'Modal.confirm should return false when Escape is pressed');
+        }
+
+        async function testModalPrompt() {
+            console.log('Testing Modal.prompt()...');
+
+            // Test prompt with value
+            setTimeout(() => {
+                const input = document.querySelector('.modal-input');
+                const confirmBtn = document.querySelector('.modal-confirm-btn');
+                if (input) input.value = 'Test Value';
+                if (confirmBtn) confirmBtn.click();
+            }, 100);
+
+            const result1 = await Modal.prompt('Enter value:', '', 'Test');
+            assertEquals(result1, 'Test Value', 'Modal.prompt should return entered value when OK is clicked');
+
+            // Test prompt with cancel
+            setTimeout(() => {
+                const cancelBtn = document.querySelector('.modal-cancel');
+                if (cancelBtn) cancelBtn.click();
+            }, 100);
+
+            const result2 = await Modal.prompt('Enter value:', 'Default', 'Test');
+            assertEquals(result2, null, 'Modal.prompt should return null when Cancel is clicked');
+
+            // Test prompt with empty string (should return null)
+            setTimeout(() => {
+                const input = document.querySelector('.modal-input');
+                const confirmBtn = document.querySelector('.modal-confirm-btn');
+                if (input) input.value = '   ';  // whitespace only
+                if (confirmBtn) confirmBtn.click();
+            }, 100);
+
+            const result3 = await Modal.prompt('Enter value:', '', 'Test');
+            assertEquals(result3, null, 'Modal.prompt should return null when empty string is entered');
+
+            // Test prompt with Enter key
+            setTimeout(() => {
+                const input = document.querySelector('.modal-input');
+                if (input) {
+                    input.value = 'Enter Key Test';
+                    const event = new KeyboardEvent('keydown', { key: 'Enter' });
+                    input.dispatchEvent(event);
+                }
+            }, 100);
+
+            const result4 = await Modal.prompt('Enter value:', '', 'Test');
+            assertEquals(result4, 'Enter Key Test', 'Modal.prompt should return value when Enter is pressed');
+        }
+
+        async function testModalShow() {
+            console.log('Testing Modal.show()...');
+
+            // Test info modal
+            setTimeout(() => {
+                const okBtn = document.querySelector('.modal-ok-btn');
+                if (okBtn) okBtn.click();
+            }, 100);
+
+            await Modal.show('Test Title', '<p>Test content</p>');
+            assert(true, 'Modal.show should display and close correctly');
+
+            // Test with close button
+            setTimeout(() => {
+                const closeBtn = document.querySelector('.modal-close');
+                if (closeBtn) closeBtn.click();
+            }, 100);
+
+            await Modal.show('Test Title 2', '<p>Test content 2</p>');
+            assert(true, 'Modal.show should close with close button');
+        }
+
+        async function testToastNotifications() {
+            console.log('Testing Toast notifications...');
+
+            Toast.success('Success toast');
+            assert(document.querySelectorAll('.toast.success').length > 0, 'Success toast should be displayed');
+
+            Toast.error('Error toast');
+            assert(document.querySelectorAll('.toast.error').length > 0, 'Error toast should be displayed');
+
+            Toast.warning('Warning toast');
+            assert(document.querySelectorAll('.toast.warning').length > 0, 'Warning toast should be displayed');
+
+            Toast.info('Info toast');
+            assert(document.querySelectorAll('.toast.info').length > 0, 'Info toast should be displayed');
+
+            // Wait a bit then clear all
+            await new Promise(resolve => setTimeout(resolve, 500));
+            Toast.clearAll();
+            assert(document.querySelectorAll('.toast').length === 0, 'Toast.clearAll should remove all toasts');
+        }
+
+        async function testToastAutoDismiss() {
+            console.log('Testing Toast auto-dismiss...');
+
+            Toast.success('Auto dismiss test', 1000);
+            assert(document.querySelectorAll('.toast').length > 0, 'Toast should be visible immediately');
+
+            // Wait for auto-dismiss
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            assert(document.querySelectorAll('.toast').length === 0, 'Toast should auto-dismiss after duration');
+        }
+
+        async function testToastManualClose() {
+            console.log('Testing Toast manual close...');
+
+            Toast.info('Manual close test', 0);  // 0 = no auto-dismiss
+            const closeBtn = document.querySelector('.toast-close');
+            assertNotNull(closeBtn, 'Toast should have close button');
+
+            closeBtn.click();
+
+            // Wait for animation
+            await new Promise(resolve => setTimeout(resolve, 500));
+            assert(document.querySelectorAll('.toast').length === 0, 'Toast should close when close button clicked');
+        }
+
+        // Run all tests
+        async function runTests() {
+            if (!initialized) {
+                alert('Not initialized. Please wait...');
+                return;
+            }
+
+            document.getElementById('runTestsBtn').disabled = true;
+            document.getElementById('overallStatus').innerHTML =
+                '<span class="status running">Running Tests...</span>';
+
+            // Clear console
+            consoleOutput.innerHTML = '';
+            totalTests = 0;
+            passedTests = 0;
+            failedTests = 0;
+
+            console.log('Starting Modal Dialog Tests...\n');
+
+            await runTest('Modal.confirm()', testModalConfirm);
+            await runTest('Modal.prompt()', testModalPrompt);
+            await runTest('Modal.show()', testModalShow);
+            await runTest('Toast Notifications', testToastNotifications);
+            await runTest('Toast Auto-Dismiss', testToastAutoDismiss);
+            await runTest('Toast Manual Close', testToastManualClose);
+
+            // Update summary
+            document.getElementById('totalTests').textContent = totalTests;
+            document.getElementById('passedTests').textContent = passedTests;
+            document.getElementById('failedTests').textContent = failedTests;
+
+            const statusClass = failedTests === 0 ? 'success' : 'failure';
+            const statusText = failedTests === 0 ? 'All Tests Passed!' : `${failedTests} Test(s) Failed`;
+
+            document.getElementById('overallStatus').innerHTML =
+                `<span class="status ${statusClass}">${statusText}</span>`;
+
+            document.getElementById('runTestsBtn').disabled = false;
+        }
+
+        // Initialize on load
+        window.addEventListener('load', initialize);
+    </script>
+</body>
+</html>

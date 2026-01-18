@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Copy/Paste Tests</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <!-- Leaflet Routing Machine CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../css/style.css">
+
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #007bff;
+            padding-bottom: 10px;
+        }
+
+        .test-summary {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .status {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .status.success {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .status.failure {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .status.running {
+            background-color: #ffc107;
+            color: #333;
+        }
+
+        .metric {
+            display: inline-block;
+            margin-right: 20px;
+            padding: 8px 15px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .metric.passed {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .metric.failed {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .metric.total {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+
+        #console {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 600px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+
+        .error {
+            color: #f48771;
+        }
+
+        .success {
+            color: #89d185;
+        }
+
+        .info {
+            color: #75beff;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <h1>Copy/Paste Operations Tests</h1>
+
+    <div class="test-summary">
+        <h2>Test Summary</h2>
+        <div id="overallStatus">
+            <span class="status running">Initializing...</span>
+        </div>
+        <div class="test-results" id="overallResults" style="margin-top: 15px;">
+            <span class="metric total">Total: <span id="totalTests">0</span></span>
+            <span class="metric passed">Passed: <span id="passedTests">0</span></span>
+            <span class="metric failed">Failed: <span id="failedTests">0</span></span>
+        </div>
+    </div>
+
+    <button id="runTestsBtn" onclick="runTests()" disabled>Run Tests</button>
+
+    <h3>Console Output</h3>
+    <div id="console"></div>
+
+    <!-- Hidden UI elements for testing -->
+    <div id="fileList" style="display: none;"></div>
+    <div id="actionToolbar" style="display: none;"></div>
+    <div id="toastContainer"></div>
+    <div id="mapContainer" style="display: none;">
+        <div id="map" style="height: 400px;"></div>
+    </div>
+    <div id="previewTitle" style="display: none;"></div>
+    <div id="previewMetadata" style="display: none;"></div>
+    <div id="routingStrategyContainer" style="display: none;">
+        <select id="routingStrategy">
+            <option value="road">Road</option>
+        </select>
+    </div>
+    <nav><ol class="breadcrumb" id="breadcrumbNav"></ol></nav>
+
+    <!-- External Libraries -->
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/sql-wasm.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+
+    <!-- Application Modules -->
+    <script src="../js/toast.js"></script>
+    <script src="../js/modal.js"></script>
+    <script src="../js/database.js"></script>
+    <script src="../js/gpx-parser.js"></script>
+    <script src="../js/gpx-normalizer.js"></script>
+    <script src="../js/file-manager.js"></script>
+    <script src="../js/routing.js"></script>
+    <script src="../js/map-preview.js"></script>
+    <script src="../js/ui-controller.js"></script>
+
+    <!-- Test Module -->
+    <script src="test-copy-paste.js"></script>
+
+    <script>
+        // Override console methods to capture output
+        const consoleOutput = document.getElementById('console');
+        const originalLog = console.log;
+        const originalError = console.error;
+
+        function appendToConsole(message, className = '') {
+            const span = document.createElement('span');
+            span.textContent = message + '\n';
+            if (className) {
+                span.className = className;
+            }
+            consoleOutput.appendChild(span);
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            const message = args.join(' ');
+            if (message.startsWith('✓')) {
+                appendToConsole(message, 'success');
+            } else if (message.startsWith('✗')) {
+                appendToConsole(message, 'error');
+            } else {
+                appendToConsole(message, 'info');
+            }
+        };
+
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            appendToConsole(args.join(' '), 'error');
+        };
+
+        // Initialize
+        let initialized = false;
+
+        async function initialize() {
+            try {
+                console.log('Initializing TEST database...');
+                Toast.init();
+                Modal.init();
+                await Database.init('gpx_library_test_copy_paste');
+                MapPreview.init();
+                UIController.init();
+
+                initialized = true;
+                console.log('Initialization complete (using TEST database)');
+
+                document.getElementById('overallStatus').innerHTML =
+                    '<span class="status" style="background-color: #17a2b8; color: white;">Ready to Run (TEST DB)</span>';
+                document.getElementById('runTestsBtn').disabled = false;
+            } catch (error) {
+                console.error('Initialization failed:', error);
+                document.getElementById('overallStatus').innerHTML =
+                    '<span class="status failure">Initialization Failed</span>';
+            }
+        }
+
+        // Run tests
+        async function runTests() {
+            if (!initialized) {
+                alert('Not initialized. Please wait...');
+                return;
+            }
+
+            document.getElementById('runTestsBtn').disabled = true;
+            document.getElementById('overallStatus').innerHTML =
+                '<span class="status running">Running Tests...</span>';
+
+            // Clear console
+            consoleOutput.innerHTML = '';
+
+            const result = await CopyPasteTests.runTests();
+
+            // Update summary
+            document.getElementById('totalTests').textContent = result.total;
+            document.getElementById('passedTests').textContent = result.passed;
+            document.getElementById('failedTests').textContent = result.failed;
+
+            const statusClass = result.failed === 0 ? 'success' : 'failure';
+            const statusText = result.failed === 0 ? 'All Tests Passed!' : `${result.failed} Test(s) Failed`;
+
+            document.getElementById('overallStatus').innerHTML =
+                `<span class="status ${statusClass}">${statusText}</span>`;
+
+            document.getElementById('runTestsBtn').disabled = false;
+        }
+
+        // Initialize on load
+        window.addEventListener('load', initialize);
+    </script>
+</body>
+</html>

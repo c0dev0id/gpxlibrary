@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Operations Tests</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../css/style.css">
+
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #f97316;
+            padding-bottom: 10px;
+        }
+
+        .test-group {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .test-group h2 {
+            margin-top: 0;
+            color: #f97316;
+        }
+
+        button {
+            background-color: #f97316;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        button:hover {
+            background-color: #ea580c;
+        }
+
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+
+        #console {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            max-height: 500px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+
+        .success { color: #89d185; }
+        .error { color: #f48771; }
+        .info { color: #75beff; }
+        .warning { color: #ffc107; }
+    </style>
+</head>
+<body>
+    <h1>File Operations Manual Tests</h1>
+
+    <div class="test-group">
+        <h2>Modal Dialog Tests</h2>
+        <p>Test modal dialogs work correctly</p>
+        <button onclick="testConfirm()">Test Confirm Dialog</button>
+        <button onclick="testPrompt()">Test Prompt Dialog</button>
+        <button onclick="testInfo()">Test Info Dialog</button>
+    </div>
+
+    <div class="test-group">
+        <h2>File Manager Tests</h2>
+        <p>Test create, rename, delete operations</p>
+        <button onclick="testCreateFolder()">Create Folder</button>
+        <button onclick="testRenameFolder()">Rename Last Folder</button>
+        <button onclick="testDeleteFolder()">Delete Last Folder</button>
+        <button onclick="listFolders()">List All Folders</button>
+    </div>
+
+    <div class="test-group">
+        <h2>Toast Notification Tests</h2>
+        <p>Test toast notifications</p>
+        <button onclick="showSuccessToast()">Success Toast</button>
+        <button onclick="showErrorToast()">Error Toast</button>
+        <button onclick="showWarningToast()">Warning Toast</button>
+        <button onclick="showInfoToast()">Info Toast</button>
+    </div>
+
+    <h3>Console Output</h3>
+    <div id="console"></div>
+
+    <!-- Hidden UI elements -->
+    <div id="fileList" style="display: none;"></div>
+    <div id="actionToolbar" style="display: none;"></div>
+    <div id="toastContainer"></div>
+    <div id="mapContainer" style="display: none;"><div id="map" style="height: 400px;"></div></div>
+    <div id="previewTitle" style="display: none;"></div>
+    <div id="previewMetadata" style="display: none;"></div>
+    <div id="routingStrategyContainer" style="display: none;"></div>
+    <nav><ol class="breadcrumb" id="breadcrumbNav"></ol></nav>
+
+    <!-- External Libraries -->
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/sql-wasm.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+
+    <!-- Application Modules -->
+    <script src="../js/toast.js"></script>
+    <script src="../js/modal.js"></script>
+    <script src="../js/database.js"></script>
+    <script src="../js/gpx-parser.js"></script>
+    <script src="../js/gpx-normalizer.js"></script>
+    <script src="../js/file-manager.js"></script>
+    <script src="../js/routing.js"></script>
+    <script src="../js/map-preview.js"></script>
+    <script src="../js/ui-controller.js"></script>
+
+    <script>
+        // Console override
+        const consoleOutput = document.getElementById('console');
+        const originalLog = console.log;
+        const originalError = console.error;
+
+        function appendToConsole(message, className = '') {
+            const span = document.createElement('span');
+            span.textContent = message + '\n';
+            if (className) span.className = className;
+            consoleOutput.appendChild(span);
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            const message = args.join(' ');
+            let className = 'info';
+            if (message.includes('✓') || message.includes('Success')) className = 'success';
+            else if (message.includes('✗') || message.includes('Error') || message.includes('Failed')) className = 'error';
+            else if (message.includes('Warning')) className = 'warning';
+            appendToConsole(message, className);
+        };
+
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            appendToConsole(args.join(' '), 'error');
+        };
+
+        // Track last created folder
+        let lastFolderId = null;
+
+        // Initialize
+        async function initialize() {
+            try {
+                console.log('Initializing TEST database...');
+                Toast.init();
+                Modal.init();
+                await Database.init('gpx_library_test_file_ops');
+                MapPreview.init();
+                UIController.init();
+                console.log('✓ Initialization complete');
+            } catch (error) {
+                console.error('✗ Initialization failed:', error);
+            }
+        }
+
+        // Modal tests
+        async function testConfirm() {
+            console.log('\n--- Testing Modal.confirm() ---');
+            const result = await Modal.confirm('Do you confirm this test?', 'Confirm Test');
+            console.log('Result:', result ? 'Confirmed' : 'Cancelled');
+        }
+
+        async function testPrompt() {
+            console.log('\n--- Testing Modal.prompt() ---');
+            const result = await Modal.prompt('Enter a test value:', 'default', 'Prompt Test');
+            console.log('Result:', result !== null ? `Value: "${result}"` : 'Cancelled');
+        }
+
+        async function testInfo() {
+            console.log('\n--- Testing Modal.show() ---');
+            await Modal.show('Info Test', '<p>This is an information modal.</p><p>It can contain HTML content.</p>');
+            console.log('Info modal closed');
+        }
+
+        // File manager tests
+        async function testCreateFolder() {
+            console.log('\n--- Testing Create Folder ---');
+            try {
+                const name = await Modal.prompt('Enter folder name:', 'Test Folder', 'Create Folder');
+                if (!name) {
+                    console.log('Cancelled');
+                    return;
+                }
+
+                const folderId = await FileManager.createFolder(name, null);
+                lastFolderId = folderId;
+                console.log(`✓ Created folder "${name}" with ID: ${folderId}`);
+                Toast.success(`Created folder: ${name}`);
+
+                // Verify in database
+                const folder = Database.query('SELECT * FROM folders WHERE id = ?', [folderId])[0];
+                console.log('Database check:', folder);
+            } catch (error) {
+                console.error('✗ Failed to create folder:', error.message);
+                Toast.error('Failed to create folder: ' + error.message);
+            }
+        }
+
+        async function testRenameFolder() {
+            console.log('\n--- Testing Rename Folder ---');
+            if (!lastFolderId) {
+                console.log('No folder to rename. Create a folder first.');
+                return;
+            }
+
+            try {
+                const folder = Database.query('SELECT * FROM folders WHERE id = ?', [lastFolderId])[0];
+                if (!folder) {
+                    console.error('Folder not found');
+                    return;
+                }
+
+                const newName = await Modal.prompt('Enter new name:', folder.name, 'Rename Folder');
+                if (!newName || newName === folder.name) {
+                    console.log('Cancelled or same name');
+                    return;
+                }
+
+                await FileManager.renameFolder(lastFolderId, newName);
+                console.log(`✓ Renamed folder from "${folder.name}" to "${newName}"`);
+                Toast.success(`Renamed to: ${newName}`);
+            } catch (error) {
+                console.error('✗ Failed to rename folder:', error.message);
+                Toast.error('Failed to rename: ' + error.message);
+            }
+        }
+
+        async function testDeleteFolder() {
+            console.log('\n--- Testing Delete Folder ---');
+            if (!lastFolderId) {
+                console.log('No folder to delete. Create a folder first.');
+                return;
+            }
+
+            try {
+                const folder = Database.query('SELECT * FROM folders WHERE id = ?', [lastFolderId])[0];
+                if (!folder) {
+                    console.error('Folder not found');
+                    return;
+                }
+
+                const confirmed = await Modal.confirm(`Delete folder "${folder.name}"?`, 'Delete Folder');
+                if (!confirmed) {
+                    console.log('Cancelled');
+                    return;
+                }
+
+                await FileManager.deleteFolder(lastFolderId);
+                console.log(`✓ Deleted folder "${folder.name}"`);
+                Toast.success(`Deleted: ${folder.name}`);
+                lastFolderId = null;
+            } catch (error) {
+                console.error('✗ Failed to delete folder:', error.message);
+                Toast.error('Failed to delete: ' + error.message);
+            }
+        }
+
+        function listFolders() {
+            console.log('\n--- All Folders in Database ---');
+            const folders = Database.query('SELECT * FROM folders ORDER BY created_at DESC');
+            if (folders.length === 0) {
+                console.log('No folders found');
+                return;
+            }
+
+            folders.forEach(folder => {
+                console.log(`ID: ${folder.id}, Name: "${folder.name}", Parent: ${folder.parent_id || 'root'}`);
+            });
+            console.log(`Total: ${folders.length} folder(s)`);
+        }
+
+        // Toast tests
+        function showSuccessToast() {
+            Toast.success('This is a success message!');
+        }
+
+        function showErrorToast() {
+            Toast.error('This is an error message!', 8000);
+        }
+
+        function showWarningToast() {
+            Toast.warning('This is a warning message!');
+        }
+
+        function showInfoToast() {
+            Toast.info('This is an info message!');
+        }
+
+        // Initialize on load
+        window.addEventListener('load', initialize);
+    </script>
+</body>
+</html>
