@@ -110,36 +110,40 @@ const FileManager = (function() {
                 
                 // Normalize to GPX 1.0
                 const normalizedContent = GPXNormalizer.normalize(gpxData);
-                
-                // Calculate metadata
-                const lengthKm = GPXNormalizer.calculateLength(gpxData);
-                const waypointCount = GPXNormalizer.countWaypoints(gpxData);
-                const ridingTimeHours = GPXNormalizer.calculateRidingTime(gpxData);
-                
+
+                // Parse the normalized content to get the final routes, tracks, and waypoints
+                // (The normalizer may have created tracks from routes and waypoints from route points)
+                const normalizedGpxData = GPXParser.parse(normalizedContent);
+
+                // Calculate metadata from normalized data
+                const lengthKm = GPXNormalizer.calculateLength(normalizedGpxData);
+                const waypointCount = normalizedGpxData.waypoints ? normalizedGpxData.waypoints.length : 0;
+                const ridingTimeHours = GPXNormalizer.calculateRidingTime(normalizedGpxData);
+
                 // Get file name without extension
                 let fileName = file.name;
                 if (fileName.toLowerCase().endsWith('.gpx')) {
                     fileName = fileName.substring(0, fileName.length - 4);
                 }
-                
+
                 // Insert GPX file
                 const timestamp = Date.now();
                 await Database.execute(
-                    `INSERT INTO gpx_files 
-                    (name, folder_id, content, length_km, waypoint_count, riding_time_hours, created_at) 
+                    `INSERT INTO gpx_files
+                    (name, folder_id, content, length_km, waypoint_count, riding_time_hours, created_at)
                     VALUES (?, ?, ?, ?, ?, ?, ?)`,
                     [fileName, folderId, normalizedContent, lengthKm, waypointCount, ridingTimeHours, timestamp]
                 );
-                
+
                 const gpxId = Database.getLastInsertId();
-                
-                // Store routes, tracks, waypoints from ORIGINAL parsed data (before normalization)
-                // This preserves all the original structure
-                
-                // Store routes
-                if (gpxData.routes) {
-                    for (let i = 0; i < gpxData.routes.length; i++) {
-                        const route = gpxData.routes[i];
+
+                // Store routes, tracks, waypoints from NORMALIZED data
+                // (The normalizer creates tracks from routes and waypoints from route points)
+
+                // Store routes (from normalized GPX)
+                if (normalizedGpxData.routes) {
+                    for (let i = 0; i < normalizedGpxData.routes.length; i++) {
+                        const route = normalizedGpxData.routes[i];
                         const routeLength = calculateRouteLength(route.points);
                         const routeTime = routeLength / 50; // Simple estimation
                         await Database.execute(
@@ -148,11 +152,11 @@ const FileManager = (function() {
                         );
                     }
                 }
-                
-                // Store tracks
-                if (gpxData.tracks) {
-                    for (let i = 0; i < gpxData.tracks.length; i++) {
-                        const track = gpxData.tracks[i];
+
+                // Store tracks (from normalized GPX - may have been created from routes)
+                if (normalizedGpxData.tracks) {
+                    for (let i = 0; i < normalizedGpxData.tracks.length; i++) {
+                        const track = normalizedGpxData.tracks[i];
                         let trackLength = 0;
                         track.segments.forEach(segment => {
                             trackLength += calculateRouteLength(segment.points);
@@ -164,10 +168,10 @@ const FileManager = (function() {
                         );
                     }
                 }
-                
-                // Store waypoints
-                if (gpxData.waypoints) {
-                    for (const waypoint of gpxData.waypoints) {
+
+                // Store waypoints (from normalized GPX - may have been created from route points)
+                if (normalizedGpxData.waypoints) {
+                    for (const waypoint of normalizedGpxData.waypoints) {
                         await Database.execute(
                             'INSERT INTO waypoints (gpx_file_id, name, lat, lon) VALUES (?, ?, ?, ?)',
                             [gpxId, waypoint.name || 'Waypoint', waypoint.lat, waypoint.lon]
