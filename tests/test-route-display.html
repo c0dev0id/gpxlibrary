@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Route Display</title>
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/sql-wasm.js"></script>
+</head>
+<body>
+    <h1>Route Display Test</h1>
+    <div id="output"></div>
+
+    <script src="../js/database.js"></script>
+    <script src="../js/gpx-parser.js"></script>
+    <script src="../js/gpx-normalizer.js"></script>
+    <script src="../js/file-manager.js"></script>
+
+    <script>
+        async function runTest() {
+            const output = $('#output');
+
+            try {
+                output.append('<p>Initializing database...</p>');
+                await Database.init();
+
+                output.append('<p>Reading test GPX file...</p>');
+                const response = await fetch('../tests/testdata/deutschlands_suedwesten_haupttour_1.gpx');
+                const gpxContent = await response.text();
+
+                output.append('<p>Parsing GPX...</p>');
+                const gpxData = GPXParser.parse(gpxContent);
+                output.append(`<p>Found ${gpxData.routes ? gpxData.routes.length : 0} routes</p>`);
+                output.append(`<p>Found ${gpxData.tracks ? gpxData.tracks.length : 0} tracks</p>`);
+                output.append(`<p>Found ${gpxData.waypoints ? gpxData.waypoints.length : 0} waypoints</p>`);
+
+                if (gpxData.routes && gpxData.routes.length > 0) {
+                    output.append(`<p>First route name: ${gpxData.routes[0].name}</p>`);
+                    output.append(`<p>First route points: ${gpxData.routes[0].points.length}</p>`);
+                }
+
+                output.append('<p>Normalizing GPX...</p>');
+                const normalizedContent = GPXNormalizer.normalize(gpxData);
+
+                output.append('<p>Parsing normalized content...</p>');
+                const normalizedData = GPXParser.parse(normalizedContent);
+                output.append(`<p>Normalized - Routes: ${normalizedData.routes ? normalizedData.routes.length : 0}</p>`);
+                output.append(`<p>Normalized - Tracks: ${normalizedData.tracks ? normalizedData.tracks.length : 0}</p>`);
+
+                // Simulate upload
+                output.append('<p>Simulating upload...</p>');
+                const timestamp = Date.now();
+                const lengthKm = GPXNormalizer.calculateLength(gpxData);
+                const waypointCount = GPXNormalizer.countWaypoints(gpxData);
+                const ridingTimeHours = GPXNormalizer.calculateRidingTime(gpxData);
+
+                await Database.execute(
+                    `INSERT INTO gpx_files
+                    (name, folder_id, content, length_km, waypoint_count, riding_time_hours, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                    ['Test Route', null, normalizedContent, lengthKm, waypointCount, ridingTimeHours, timestamp]
+                );
+
+                const gpxId = Database.getLastInsertId();
+                output.append(`<p>Created GPX file with ID: ${gpxId}</p>`);
+
+                // Store routes
+                if (gpxData.routes) {
+                    for (let i = 0; i < gpxData.routes.length; i++) {
+                        const route = gpxData.routes[i];
+                        const routeLength = calculateRouteLength(route.points);
+                        const routeTime = routeLength / 50;
+                        await Database.execute(
+                            'INSERT INTO routes (gpx_file_id, index_in_gpx, name, length_km, riding_time_hours) VALUES (?, ?, ?, ?, ?)',
+                            [gpxId, i, route.name || 'Unnamed Route', routeLength, routeTime]
+                        );
+                        output.append(`<p>Stored route ${i}: ${route.name} (${routeLength.toFixed(1)} km)</p>`);
+                    }
+                }
+
+                // Now try to retrieve and display
+                output.append('<hr><h2>Testing Route Retrieval</h2>');
+                const routes = Database.query('SELECT * FROM routes WHERE gpx_file_id = ?', [gpxId]);
+                output.append(`<p>Found ${routes.length} routes in database</p>`);
+
+                if (routes.length > 0) {
+                    const routeId = routes[0].id;
+                    const routeDbData = routes[0];
+                    output.append(`<p>First route: ID=${routeId}, index_in_gpx=${routeDbData.index_in_gpx}, name=${routeDbData.name}</p>`);
+
+                    // Get GPX file
+                    const gpxFile = Database.query('SELECT * FROM gpx_files WHERE id = ?', [gpxId])[0];
+                    output.append(`<p>Retrieved GPX file: ${gpxFile.name}</p>`);
+
+                    // Parse content
+                    const gpxDataForDisplay = GPXParser.parse(gpxFile.content);
+                    output.append(`<p>Parsed GPX - Routes: ${gpxDataForDisplay.routes ? gpxDataForDisplay.routes.length : 0}</p>`);
+                    output.append(`<p>Parsed GPX - Tracks: ${gpxDataForDisplay.tracks ? gpxDataForDisplay.tracks.length : 0}</p>`);
+
+                    // Try to access route by index
+                    if (gpxDataForDisplay.routes && gpxDataForDisplay.routes.length > routeDbData.index_in_gpx) {
+                        const route = gpxDataForDisplay.routes[routeDbData.index_in_gpx];
+                        output.append(`<p style="color: green;">SUCCESS! Retrieved route: ${route.name} with ${route.points.length} points</p>`);
+                    } else {
+                        output.append(`<p style="color: red;">FAILED! Could not access route at index ${routeDbData.index_in_gpx}</p>`);
+                        output.append(`<p>Routes array: ${JSON.stringify(gpxDataForDisplay.routes)}</p>`);
+                    }
+                }
+
+            } catch (error) {
+                output.append(`<p style="color: red;">ERROR: ${error.message}</p>`);
+                output.append(`<pre>${error.stack}</pre>`);
+            }
+        }
+
+        function calculateRouteLength(points) {
+            let length = 0;
+            for (let i = 1; i < points.length; i++) {
+                const p1 = points[i - 1];
+                const p2 = points[i];
+                length += GPXNormalizer.calculateDistance(p1.lat, p1.lon, p2.lat, p2.lon);
+            }
+            return length;
+        }
+
+        $(document).ready(function() {
+            runTest();
+        });
+    </script>
+</body>
+</html>
