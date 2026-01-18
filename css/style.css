@@ -361,8 +361,9 @@ html, body {
 
 /* ===== DRAG AND DROP ===== */
 .file-item.dragging {
-    opacity: 0.5;
+    opacity: 0.5 !important;
     cursor: move;
+    pointer-events: none;
 }
 
 .file-item.drag-over {
