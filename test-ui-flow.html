@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>UI Flow Test - Paessetraining</title>
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/sql-wasm.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        button { padding: 10px 20px; font-size: 16px; margin: 5px; }
+        #output { background: white; padding: 20px; border: 1px solid #ccc; margin: 10px 0; }
+        .success { color: green; }
+        .error { color: red; }
+        .warning { color: orange; }
+        pre { background: #f0f0f0; padding: 10px; overflow-x: auto; border: 1px solid #ddd; }
+        h3 { border-bottom: 1px solid #ccc; padding-bottom: 5px; }
+    </style>
+</head>
+<body>
+    <h1>UI Flow Test: Paessetraining File</h1>
+    <p>This test simulates exactly what the actual UI does.</p>
+    <button onclick="runTest()">Run Test</button>
+    <button onclick="copyResults()">Copy Results</button>
+    <div id="output"></div>
+
+    <script src="js/database.js"></script>
+    <script src="js/gpx-parser.js"></script>
+    <script src="js/gpx-normalizer.js"></script>
+    <script src="js/file-manager.js"></script>
+
+    <script>
+        let logText = '';
+
+        function log(msg) {
+            logText += msg + '\n';
+            console.log(msg);
+        }
+
+        function copyResults() {
+            navigator.clipboard.writeText(logText).then(() => {
+                alert('Copied to clipboard!');
+            });
+        }
+
+        async function runTest() {
+            const output = $('#output');
+            output.html('<h2>Testing...</h2>');
+            logText = '';
+
+            try {
+                log('================================================================================');
+                log('UI FLOW TEST FOR: Paessetraining Vogesen 2026 (Anfahrt).gpx');
+                log('================================================================================');
+                log('');
+
+                // Step 1: Initialize
+                log('STEP 1: Initialize Database');
+                log('-'.repeat(80));
+                await Database.init();
+                log('✓ Database initialized');
+                log('');
+
+                // Step 2: Load file
+                log('STEP 2: Load GPX File');
+                log('-'.repeat(80));
+                const response = await fetch('tests/testdata/Paessetraining Vogesen 2026 (Anfahrt).gpx');
+                const fileContent = await response.text();
+                log(`✓ File loaded: ${fileContent.length} bytes`);
+                log('');
+
+                // Step 3: Create a File-like object and upload using FileManager
+                log('STEP 3: Upload File Using FileManager (same as UI)');
+                log('-'.repeat(80));
+
+                // Create a Blob and File object
+                const blob = new Blob([fileContent], { type: 'application/gpx+xml' });
+                const file = new File([blob], 'Paessetraining Vogesen 2026 (Anfahrt).gpx', { type: 'application/gpx+xml' });
+
+                // Upload using FileManager (this is what the actual UI does)
+                const results = await FileManager.uploadGpxFiles([file], null);
+
+                if (results.errors.length > 0) {
+                    log('✗ UPLOAD FAILED:');
+                    results.errors.forEach(err => {
+                        log(`  Error: ${err.file} - ${err.error}`);
+                    });
+                } else {
+                    log(`✓ Upload successful!`);
+                    const gpxId = results.success[0].id;
+                    log(`  GPX ID: ${gpxId}`);
+                    log('');
+
+                    // Step 4: Query database EXACTLY like the UI does
+                    log('STEP 4: Query Database (What FileManager.getGpxContents Does)');
+                    log('-'.repeat(80));
+
+                    const routes = Database.query(
+                        'SELECT * FROM routes WHERE gpx_file_id = ? ORDER BY id',
+                        [gpxId]
+                    );
+
+                    const tracks = Database.query(
+                        'SELECT * FROM tracks WHERE gpx_file_id = ? ORDER BY id',
+                        [gpxId]
+                    );
+
+                    const waypoints = Database.query(
+                        'SELECT * FROM waypoints WHERE gpx_file_id = ? ORDER BY id',
+                        [gpxId]
+                    );
+
+                    log(`Routes found: ${routes.length}`);
+                    log(`Tracks found: ${tracks.length}`);
+                    log(`Waypoints found: ${waypoints.length}`);
+                    log('');
+
+                    // Step 5: Show what would be displayed
+                    log('STEP 5: What Would Be Displayed in UI');
+                    log('-'.repeat(80));
+                    log('');
+                    log('..');
+                    log('');
+
+                    if (routes.length > 0) {
+                        log('Routes');
+                        routes.forEach(route => {
+                            log(`  ${route.name}`);
+                        });
+                        log('');
+                    } else {
+                        log('[NO ROUTES SECTION - routes.length = 0]');
+                        log('');
+                    }
+
+                    if (tracks.length > 0) {
+                        log('Tracks');
+                        tracks.forEach(track => {
+                            log(`  ${track.name}`);
+                        });
+                        log('');
+                    } else {
+                        log('[NO TRACKS SECTION - tracks.length = 0]');
+                        log('');
+                    }
+
+                    if (waypoints.length > 0) {
+                        log('Waypoints');
+                        waypoints.forEach(wp => {
+                            log(`  ${wp.name}`);
+                        });
+                        log('');
+                    } else {
+                        log('[NO WAYPOINTS SECTION - waypoints.length = 0]');
+                        log('');
+                    }
+
+                    // Step 6: Detailed Analysis
+                    log('STEP 6: Detailed Analysis');
+                    log('-'.repeat(80));
+
+                    if (routes.length > 0) {
+                        log(`\nROUTES (${routes.length} found):`);
+                        routes.forEach((route, i) => {
+                            log(`  [${i}] ID:${route.id} index_in_gpx:${route.index_in_gpx} name:"${route.name}" length:${route.length_km}km`);
+                        });
+                    }
+
+                    if (tracks.length > 0) {
+                        log(`\nTRACKS (${tracks.length} found):`);
+                        tracks.forEach((track, i) => {
+                            log(`  [${i}] ID:${track.id} index_in_gpx:${track.index_in_gpx} name:"${track.name}" length:${track.length_km}km`);
+                        });
+                    }
+
+                    if (waypoints.length > 0) {
+                        log(`\nWAYPOINTS (${waypoints.length} found):`);
+                        waypoints.forEach((wp, i) => {
+                            log(`  [${i}] ID:${wp.id} name:"${wp.name}" lat:${wp.lat} lon:${wp.lon}`);
+                        });
+                    }
+                    log('');
+
+                    // Step 7: Expected vs Actual
+                    log('STEP 7: Expected vs Actual');
+                    log('-'.repeat(80));
+                    log('Expected:');
+                    log('  Routes: 6 (Sabine, Catch 22, Uggi & Bonifaz, Stefan & Jessica, MBiker, Marvin)');
+                    log('  Tracks: 6 (generated from routes)');
+                    log('  Waypoints: 3 (Treffpunkt x2, Kruth)');
+                    log('');
+                    log('Actual:');
+                    log(`  Routes: ${routes.length}`);
+                    log(`  Tracks: ${tracks.length}`);
+                    log(`  Waypoints: ${waypoints.length}`);
+                    log('');
+
+                    // Verdict
+                    const routesOK = routes.length === 6;
+                    const tracksOK = tracks.length === 6;
+                    const waypointsOK = waypoints.length === 3;
+
+                    if (routesOK && tracksOK && waypointsOK) {
+                        log('✓ TEST PASSED - All data is correct!');
+                        log('  If the UI is not showing data, the problem is in ui-controller.js renderGpxContents()');
+                    } else {
+                        log('✗ TEST FAILED - Data is incorrect:');
+                        if (!routesOK) log(`  ✗ Routes: expected 6, got ${routes.length}`);
+                        if (!tracksOK) log(`  ✗ Tracks: expected 6, got ${tracks.length}`);
+                        if (!waypointsOK) log(`  ✗ Waypoints: expected 3, got ${waypoints.length}`);
+                    }
+                }
+
+                log('');
+                log('================================================================================');
+                log('END OF TEST');
+                log('================================================================================');
+
+                // Display results
+                output.html('<pre>' + logText + '</pre>');
+
+            } catch (error) {
+                log('');
+                log('✗ ERROR: ' + error.message);
+                log(error.stack);
+                output.html('<pre>' + logText + '</pre>');
+            }
+        }
+    </script>
+</body>
+</html>

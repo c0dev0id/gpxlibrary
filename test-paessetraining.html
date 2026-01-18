@@ -15,24 +15,52 @@
         h3 { color: #555; }
         ul { line-height: 1.8; }
         .highlight { background: yellow; padding: 2px 4px; }
-        button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; margin: 5px; }
+        #copyOutput { background: #f0f0f0; padding: 15px; border: 1px solid #ccc; white-space: pre-wrap; font-family: monospace; max-height: 500px; overflow-y: auto; }
     </style>
 </head>
 <body>
     <h1>Test: Paessetraining Vogesen 2026 (Anfahrt).gpx</h1>
     <button onclick="runTest()">Run Test</button>
+    <button onclick="copyToClipboard()">Copy Results to Clipboard</button>
     <div id="output"></div>
+    <h2>Copy This Output:</h2>
+    <div id="copyOutput"></div>
 
     <script src="js/database.js"></script>
     <script src="js/gpx-parser.js"></script>
     <script src="js/gpx-normalizer.js"></script>
 
+    <script src="js/file-manager.js"></script>
+
     <script>
+        let testResults = [];
+
+        function log(msg) {
+            testResults.push(msg);
+        }
+
+        function copyToClipboard() {
+            const text = testResults.join('\n');
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Results copied to clipboard!');
+            }).catch(err => {
+                alert('Failed to copy: ' + err);
+            });
+        }
+
         async function runTest() {
             const output = $('#output');
+            const copyOutput = $('#copyOutput');
             output.html('');
+            copyOutput.text('');
+            testResults = [];
 
             try {
+                log('='.repeat(80));
+                log('TEST REPORT: Paessetraining Vogesen 2026 (Anfahrt).gpx');
+                log('='.repeat(80));
+                log('');
                 // Initialize database
                 output.append('<div class="section"><h2>1. Initializing Database</h2>');
                 await Database.init();
