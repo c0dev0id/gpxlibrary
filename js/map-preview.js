@@ -5,10 +5,11 @@
 
 const MapPreview = (function() {
     'use strict';
-    
+
     let map = null;
     let currentLayers = [];
-    
+    let lastRoutedPath = null; // Store last routed path for Update Track functionality
+
     // Color palette for routes and tracks (high contrast with map background)
     const COLORS = [
         '#FF0000', // Red
@@ -224,6 +225,9 @@ const MapPreview = (function() {
             const waypoints = route.points.map(pt => ({ lat: pt.lat, lon: pt.lon }));
             const routedPath = await Routing.calculateRoute(waypoints);
 
+            // Store last routed path for Update Track functionality
+            lastRoutedPath = routedPath;
+
             // Display routed path
             const polyline = L.polyline(routedPath.coordinates, {
                 color: COLORS[colorIndex],
@@ -246,6 +250,9 @@ const MapPreview = (function() {
             }
         } catch (error) {
             console.error('Routing failed, falling back to straight lines:', error);
+
+            // Clear last routed path since routing failed
+            lastRoutedPath = null;
 
             // Fallback: draw straight lines between waypoints
             const latlngs = route.points.map(pt => [pt.lat, pt.lon]);
@@ -403,7 +410,14 @@ const MapPreview = (function() {
         clearLayers();
         // Could add a message overlay here if desired
     }
-    
+
+    /**
+     * Get last routed path (for Update Track functionality)
+     */
+    function getLastRoutedPath() {
+        return lastRoutedPath;
+    }
+
     // Public API
     return {
         init,
@@ -414,6 +428,7 @@ const MapPreview = (function() {
         showEmptyState,
         clearLayers,
         clearMap,
-        fitBounds
+        fitBounds,
+        getLastRoutedPath
     };
 })();

@@ -142,6 +142,13 @@ const Database = (function() {
                 db.run('ALTER TABLE tracks ADD COLUMN index_in_gpx INTEGER DEFAULT 0');
             }
 
+            // Check if routing_strategy column exists in routes table
+            const hasRoutingStrategy = routesColumns[0]?.values?.some(row => row[1] === 'routing_strategy');
+
+            if (!hasRoutingStrategy) {
+                db.run('ALTER TABLE routes ADD COLUMN routing_strategy TEXT DEFAULT "road"');
+            }
+
             await saveToIndexedDB();
         } catch (error) {
             console.error('Migration error:', error);

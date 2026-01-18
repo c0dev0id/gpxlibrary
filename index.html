@@ -63,8 +63,8 @@
                         <strong>Path:</strong> <span id="currentPath">/</span>
                     </div>
 
-                    <!-- Routing Strategy -->
-                    <div class="mb-3">
+                    <!-- Routing Strategy (hidden by default, shown when route selected) -->
+                    <div class="mb-3" id="routingStrategyContainer" style="display: none;">
                         <label for="routingStrategy" class="form-label"><strong>Routing Strategy:</strong></label>
                         <select class="form-select form-select-sm" id="routingStrategy">
                             <option value="road" selected>Road (Fast)</option>
@@ -72,7 +72,10 @@
                             <option value="curvy">Curvy (Scenic)</option>
                             <option value="prefer-unpaved">Prefer Unpaved</option>
                         </select>
-                        <small class="text-muted">Strategy used for route display and calculations</small>
+                        <small class="text-muted d-block mb-2">Strategy used for route display</small>
+                        <button type="button" class="btn btn-sm btn-primary w-100" id="updateTrackBtn" style="display: none;">
+                            Update Track
+                        </button>
                     </div>
 
                     <!-- Filter -->
@@ -154,13 +157,13 @@
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
     
     <!-- Application JS -->
-    <script src="js/database.js?v=8"></script>
-    <script src="js/gpx-parser.js?v=8"></script>
-    <script src="js/gpx-normalizer.js?v=8"></script>
-    <script src="js/routing.js?v=8"></script>
-    <script src="js/file-manager.js?v=8"></script>
-    <script src="js/map-preview.js?v=8"></script>
-    <script src="js/ui-controller.js?v=8"></script>
-    <script src="js/app.js?v=8"></script>
+    <script src="js/database.js?v=9"></script>
+    <script src="js/gpx-parser.js?v=9"></script>
+    <script src="js/gpx-normalizer.js?v=9"></script>
+    <script src="js/routing.js?v=9"></script>
+    <script src="js/file-manager.js?v=9"></script>
+    <script src="js/map-preview.js?v=9"></script>
+    <script src="js/ui-controller.js?v=9"></script>
+    <script src="js/app.js?v=9"></script>
 </body>
 </html>

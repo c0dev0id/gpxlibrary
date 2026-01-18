@@ -50,6 +50,7 @@ const UIController = (function() {
 
         // Routing strategy
         $('#routingStrategy').on('change', handleRoutingStrategyChange);
+        $('#updateTrackBtn').on('click', handleUpdateTrackClick);
 
         // Path navigation
         $('#currentPath').on('click', handlePathClick);
@@ -274,6 +275,7 @@ const UIController = (function() {
         if (selectedItems.length === 0) {
             MapPreview.showEmptyState();
             updatePreviewTitle('No selection');
+            hideRoutingStrategyUI();
             return;
         }
 
@@ -284,6 +286,7 @@ const UIController = (function() {
 
         // Multiple items selected - display all on map
         MapPreview.clearMap();
+        hideRoutingStrategyUI(); // Hide routing UI for multiselect
 
         let totalLength = 0;
         let itemNames = [];
@@ -353,23 +356,59 @@ const UIController = (function() {
      */
     function updatePreview(type, id) {
         const currentGpxId = FileManager.getCurrentGpxId();
-        
+
         if (type === 'gpx') {
             MapPreview.displayGpx(id);
             updatePreviewFromGpxId(id);
+            hideRoutingStrategyUI();
         } else if (type === 'route') {
             MapPreview.displayRoute(currentGpxId, id);
             updatePreviewFromRoute(currentGpxId, id);
+            showRoutingStrategyUI(id);
         } else if (type === 'track') {
             MapPreview.displayTrack(currentGpxId, id);
             updatePreviewFromTrack(currentGpxId, id);
+            hideRoutingStrategyUI();
         } else if (type === 'waypoint') {
             MapPreview.displayWaypoint(currentGpxId, id);
             updatePreviewFromWaypoint(currentGpxId, id);
+            hideRoutingStrategyUI();
         } else if (type === 'folder') {
             MapPreview.showEmptyState();
             updatePreviewTitle('Folder: ' + Database.query('SELECT name FROM folders WHERE id = ?', [id])[0].name);
+            hideRoutingStrategyUI();
         }
+    }
+
+    /**
+     * Show routing strategy UI for selected route
+     */
+    function showRoutingStrategyUI(routeId) {
+        // Load saved routing strategy from database
+        const route = Database.query('SELECT routing_strategy FROM routes WHERE id = ?', [routeId])[0];
+        const strategy = route?.routing_strategy || 'road';
+
+        // Set the strategy in the dropdown
+        $('#routingStrategy').val(strategy);
+        Routing.setStrategy(strategy);
+
+        // Store current route ID for later use
+        $('#routingStrategyContainer').data('currentRouteId', routeId);
+
+        // Show the container
+        $('#routingStrategyContainer').show();
+
+        // Hide Update Track button initially
+        $('#updateTrackBtn').hide();
+    }
+
+    /**
+     * Hide routing strategy UI
+     */
+    function hideRoutingStrategyUI() {
+        $('#routingStrategyContainer').hide();
+        $('#updateTrackBtn').hide();
+        $('#routingStrategyContainer').data('currentRouteId', null);
     }
     
     /**
@@ -733,15 +772,118 @@ const UIController = (function() {
         const strategy = $('#routingStrategy').val();
         Routing.setStrategy(strategy);
 
-        // Refresh the currently displayed route if there is one
-        const selectedItems = FileManager.getSelectedItems();
-        if (selectedItems.length > 0) {
-            const item = selectedItems[0];
-            if (item.type === 'route') {
-                const currentGpxId = FileManager.getCurrentGpxId();
-                MapPreview.displayRoute(currentGpxId, item.id);
-            }
+        // Get current route ID from container data
+        const routeId = $('#routingStrategyContainer').data('currentRouteId');
+
+        if (routeId) {
+            const currentGpxId = FileManager.getCurrentGpxId();
+
+            // Recalculate and display route with new strategy
+            MapPreview.displayRoute(currentGpxId, routeId);
+
+            // Show Update Track button to save the new routing
+            $('#updateTrackBtn').show();
         }
+    }
+
+    async function handleUpdateTrackClick() {
+        const routeId = $('#routingStrategyContainer').data('currentRouteId');
+        const strategy = $('#routingStrategy').val();
+
+        if (!routeId) return;
+
+        try {
+            const currentGpxId = FileManager.getCurrentGpxId();
+
+            // Save the routing strategy to the database
+            await Database.execute(
+                'UPDATE routes SET routing_strategy = ? WHERE id = ?',
+                [strategy, routeId]
+            );
+
+            // Get the routed path from MapPreview (we need to expose this)
+            const routedData = await MapPreview.getLastRoutedPath();
+
+            if (routedData) {
+                // Update the corresponding track in the GPX file
+                await updateTrackFromRoutedPath(currentGpxId, routeId, routedData);
+
+                // Hide the Update Track button
+                $('#updateTrackBtn').hide();
+
+                // Show success message
+                updatePreviewTitle('Track updated successfully!', 'Routing strategy saved');
+
+                // Refresh the file list to show updated distances/times
+                setTimeout(() => {
+                    renderFileList();
+                }, 1000);
+            }
+        } catch (error) {
+            alert('Failed to update track: ' + error.message);
+        }
+    }
+
+    /**
+     * Update track with routed path data
+     */
+    async function updateTrackFromRoutedPath(gpxId, routeId, routedData) {
+        const gpxFile = FileManager.getGpxFile(gpxId);
+        if (!gpxFile) throw new Error('GPX file not found');
+
+        // Parse the GPX content
+        const gpxData = GPXParser.parse(gpxFile.content);
+
+        // Find the route by ID
+        const route = Database.query('SELECT * FROM routes WHERE id = ?', [routeId])[0];
+        if (!route) throw new Error('Route not found');
+
+        // Find or create corresponding track
+        const trackIndex = route.index_in_gpx;
+
+        // Create track from routed data
+        const track = {
+            name: route.name || 'Unnamed Track',
+            desc: `Updated from route using ${Routing.getStrategy()} strategy`,
+            segments: [{
+                points: routedData.coordinates.map(coord => ({
+                    lat: coord[0],
+                    lon: coord[1],
+                    ele: null,
+                    time: null
+                }))
+            }]
+        };
+
+        // Update or add track in GPX data
+        if (!gpxData.tracks) {
+            gpxData.tracks = [];
+        }
+
+        if (trackIndex < gpxData.tracks.length) {
+            // Update existing track
+            gpxData.tracks[trackIndex] = track;
+        } else {
+            // Add new track
+            gpxData.tracks.push(track);
+        }
+
+        // Regenerate GPX XML
+        const updatedContent = GPXNormalizer.normalize(gpxData);
+
+        // Update database
+        const lengthKm = routedData.distance / 1000;
+        const ridingTimeHours = routedData.time / 3600;
+
+        await Database.execute(
+            'UPDATE gpx_files SET content = ? WHERE id = ?',
+            [updatedContent, gpxId]
+        );
+
+        await Database.execute(
+            'UPDATE tracks SET length_km = ?, riding_time_hours = ? WHERE gpx_file_id = ? AND index_in_gpx = ?',
+            [lengthKm, ridingTimeHours, gpxId, trackIndex]
+        );
     }
 
     function handlePathClick() {
