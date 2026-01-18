@@ -195,15 +195,16 @@ const Modal = (function() {
 
         modalContainer.innerHTML = html;
         activeModal = modalContainer.querySelector('.modal-dialog');
+        const backdrop = modalContainer.querySelector('.modal-backdrop');
         resolveCallback = callback;
 
         // Backdrop click closes modal
-        const backdrop = modalContainer.querySelector('.modal-backdrop');
         backdrop.addEventListener('click', () => closeModal(null));
 
         // Trigger animation
         setTimeout(() => {
             activeModal.classList.add('show');
+            backdrop.classList.add('show');
         }, 10);
     }
 
@@ -213,7 +214,11 @@ const Modal = (function() {
     function closeModal(result, skipCallback = false) {
         if (!activeModal) return;
 
+        const backdrop = modalContainer.querySelector('.modal-backdrop');
         activeModal.classList.remove('show');
+        if (backdrop) {
+            backdrop.classList.remove('show');
+        }
 
         setTimeout(() => {
             modalContainer.innerHTML = '';

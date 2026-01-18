@@ -175,6 +175,24 @@
         // Initialize
         async function initialize() {
             try {
+                // Wait for initSqlJs to be available
+                if (typeof initSqlJs === 'undefined') {
+                    console.log('Waiting for SQL.js to load...');
+                    await new Promise(resolve => {
+                        const checkInterval = setInterval(() => {
+                            if (typeof initSqlJs !== 'undefined') {
+                                clearInterval(checkInterval);
+                                resolve();
+                            }
+                        }, 100);
+                        // Timeout after 10 seconds
+                        setTimeout(() => {
+                            clearInterval(checkInterval);
+                            resolve();
+                        }, 10000);
+                    });
+                }
+
                 console.log('Initializing TEST database...');
                 Toast.init();
                 Modal.init();
@@ -184,6 +202,7 @@
                 console.log('✓ Initialization complete');
             } catch (error) {
                 console.error('✗ Initialization failed:', error);
+                console.error('Error details:', error.stack);
             }
         }
 
