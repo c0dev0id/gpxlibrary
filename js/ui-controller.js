@@ -647,16 +647,25 @@ const UIController = (function() {
             waypoints: []
         };
 
+        // Store the name for single item downloads
+        let downloadName = null;
+
         items.forEach(item => {
             if (item.type === 'route') {
                 const route = Database.query('SELECT * FROM routes WHERE id = ?', [item.id])[0];
                 if (route && gpxData.routes[route.index_in_gpx]) {
                     newGpxData.routes.push(gpxData.routes[route.index_in_gpx]);
+                    if (items.length === 1) {
+                        downloadName = route.name;
+                    }
                 }
             } else if (item.type === 'track') {
                 const track = Database.query('SELECT * FROM tracks WHERE id = ?', [item.id])[0];
                 if (track && gpxData.tracks[track.index_in_gpx]) {
                     newGpxData.tracks.push(gpxData.tracks[track.index_in_gpx]);
+                    if (items.length === 1) {
+                        downloadName = track.name;
+                    }
                 }
             } else if (item.type === 'waypoint') {
                 const waypoint = Database.query('SELECT * FROM waypoints WHERE id = ?', [item.id])[0];
@@ -671,6 +680,9 @@ const UIController = (function() {
                         sym: null,
                         type: null
                     });
+                    if (items.length === 1) {
+                        downloadName = waypoint.name;
+                    }
                 }
             }
         });
@@ -680,7 +692,14 @@ const UIController = (function() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = (items[0].type === 'route' ? 'route' : items[0].type === 'track' ? 'track' : 'waypoints') + '.gpx';
+
+        // Use the item's name for single item downloads, generic name for multiple
+        if (items.length === 1 && downloadName) {
+            a.download = downloadName + '.gpx';
+        } else {
+            a.download = (items[0].type === 'route' ? 'route' : items[0].type === 'track' ? 'track' : 'waypoints') + '.gpx';
+        }
+
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
