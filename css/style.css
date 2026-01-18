@@ -1,58 +1,79 @@
-/* Global styles */
+/*
+ * GPX Library - Professional UI Design
+ * Color Palette: Warm Orange Theme with Refined Neutrals
+ * Primary: #f97316 (Orange-600) - Professional, vibrant
+ * Primary Hover: #ea580c (Orange-700) - Deeper orange
+ * Accent: #fed7aa (Orange-200) - Light accent
+ * Neutrals: Gray scale for depth and hierarchy
+ */
+
+/* ===== GLOBAL STYLES ===== */
 html, body {
     height: 100%;
     margin: 0;
     padding: 0;
     overflow: hidden;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+    color: #1f2937;
+    background: #f9fafb;
 }
 
 .h-100 {
     height: 100vh !important;
 }
 
-/* App Header */
+/* ===== APP HEADER ===== */
 .app-header {
     flex-shrink: 0;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+    border-bottom: 1px solid #e5e7eb;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
     z-index: 1000;
 }
 
 .app-header h1 {
     margin: 0;
     font-weight: 600;
-    letter-spacing: -0.5px;
+    font-size: 1.25rem;
+    letter-spacing: -0.025em;
+    color: #111827;
 }
 
 .app-header .dropdown-menu {
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    border: 1px solid rgba(0,0,0,0.05);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
 }
 
 .app-header .dropdown-item {
-    padding: 10px 20px;
-    transition: background-color 0.2s;
+    padding: 10px 16px;
+    transition: all 0.15s ease;
+    color: #374151;
 }
 
 .app-header .dropdown-item:hover {
-    background-color: #f8f9fa;
+    background-color: #fef3f2;
+    color: #f97316;
 }
 
 .app-header .dropdown-header {
     font-weight: 600;
-    color: #495057;
+    color: #6b7280;
     font-size: 0.75rem;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.05em;
+    padding: 8px 16px;
 }
 
-/* Sidebar */
+/* ===== SIDEBAR ===== */
 .sidebar {
-    box-shadow: 2px 0 8px rgba(0,0,0,0.05);
+    background: #ffffff;
+    border-right: 1px solid #e5e7eb;
+    box-shadow: none;
     z-index: 100;
 }
 
-/* Breadcrumb Navigation */
+/* ===== BREADCRUMB NAVIGATION ===== */
 .breadcrumb {
     background: transparent;
     margin-bottom: 0;
@@ -60,34 +81,37 @@ html, body {
 }
 
 .breadcrumb-item {
-    font-size: 0.9rem;
+    font-size: 0.875rem;
+    color: #6b7280;
 }
 
 .breadcrumb-item.active {
-    color: #495057;
+    color: #374151;
+    font-weight: 500;
 }
 
 .breadcrumb-item a {
-    color: #ff8c42;
+    color: #f97316;
     text-decoration: none;
-    transition: color 0.2s;
+    transition: color 0.15s ease;
+    font-weight: 500;
 }
 
 .breadcrumb-item a:hover {
-    color: #ff6b35;
-    text-decoration: underline;
+    color: #ea580c;
 }
 
-/* Action Toolbar */
+/* ===== ACTION TOOLBAR ===== */
 .action-toolbar {
+    background: #ffffff;
+    border-bottom: 1px solid #e5e7eb;
     animation: slideDown 0.2s ease-out;
-    background: linear-gradient(135deg, #fff5f0 0%, #ffffff 100%);
 }
 
 @keyframes slideDown {
     from {
         opacity: 0;
-        transform: translateY(-10px);
+        transform: translateY(-8px);
     }
     to {
         opacity: 1;
@@ -96,102 +120,126 @@ html, body {
 }
 
 .action-toolbar .btn-group {
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    border-radius: 6px;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    border-radius: 8px;
     overflow: hidden;
+    border: 1px solid #e5e7eb;
 }
 
 .action-toolbar .btn {
-    transition: all 0.2s;
+    transition: all 0.15s ease;
     border: none;
-    padding: 8px 14px;
+    padding: 8px 12px;
+    color: #6b7280;
+    background: #ffffff;
+}
+
+.action-toolbar .btn:not(:last-child) {
+    border-right: 1px solid #e5e7eb;
 }
 
 .action-toolbar .btn:hover:not(:disabled) {
-    background-color: #ff8c42;
+    background-color: #f97316;
     color: white;
-    transform: translateY(-1px);
 }
 
 .action-toolbar .btn:disabled {
     opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.action-toolbar .btn-danger {
+    color: #dc2626;
 }
 
 .action-toolbar .btn-danger:hover {
-    background-color: #dc3545 !important;
+    background-color: #dc2626 !important;
+    color: white;
 }
 
 #selectionCount {
     display: inline-block;
-    font-size: 0.9rem;
-    color: #495057;
+    font-size: 0.875rem;
+    color: #374151;
     font-weight: 500;
 }
 
-/* Filter Panel */
+/* ===== FILTER PANEL ===== */
 .filter-panel .btn-link {
-    color: #495057;
+    color: #374151;
     font-weight: 500;
-    transition: color 0.2s;
+    transition: color 0.15s ease;
 }
 
 .filter-panel .btn-link:hover {
-    color: #ff8c42;
+    color: #f97316;
 }
 
 .filter-panel .form-control {
-    transition: border-color 0.2s, box-shadow 0.2s;
+    transition: all 0.15s ease;
+    border-color: #d1d5db;
+    border-radius: 6px;
+    font-size: 0.875rem;
 }
 
 .filter-panel .form-control:focus {
-    border-color: #ff8c42;
-    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
+    border-color: #f97316;
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+    outline: none;
 }
 
-/* Preview Header */
+/* ===== PREVIEW HEADER ===== */
 .preview-header {
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    background: #ffffff;
+    border-bottom: 1px solid #e5e7eb;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
 
 .preview-header h4 {
     margin: 0;
     font-weight: 600;
-    color: #212529;
+    font-size: 1.125rem;
+    color: #111827;
 }
 
 .preview-header .card {
-    border: 1px solid rgba(0,0,0,0.08);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
 
 .preview-header .card-body {
-    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+    background: #fafafa;
 }
 
 #previewMetadata .badge {
     padding: 6px 12px;
     font-weight: 500;
-    font-size: 0.85rem;
+    font-size: 0.8125rem;
+    border-radius: 6px;
 }
 
-/* Floating Action Button (FAB) */
+/* ===== FLOATING ACTION BUTTON (FAB) ===== */
 .fab {
     position: fixed;
-    bottom: 30px;
-    right: 30px;
-    width: 64px;
-    height: 64px;
+    bottom: 24px;
+    right: 24px;
+    width: 56px;
+    height: 56px;
     border: none;
+    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+    border-radius: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 1000;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 10px 15px -3px rgba(249, 115, 22, 0.3), 0 4px 6px -2px rgba(249, 115, 22, 0.2);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .fab:hover {
-    transform: scale(1.1) rotate(90deg);
-    box-shadow: 0 8px 16px rgba(255, 107, 53, 0.4) !important;
+    transform: scale(1.05);
+    box-shadow: 0 20px 25px -5px rgba(249, 115, 22, 0.35), 0 10px 10px -5px rgba(249, 115, 22, 0.25);
 }
 
 .fab:active {
@@ -199,27 +247,30 @@ html, body {
 }
 
 .fab i {
-    transition: transform 0.3s;
+    color: white;
+    font-size: 20px;
 }
 
-/* Map Placeholder */
+/* ===== MAP PLACEHOLDER ===== */
 .map-placeholder {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
 }
 
 .map-placeholder i {
-    opacity: 0.3;
+    opacity: 0.2;
 }
 
-/* Save Container */
+/* ===== SAVE CONTAINER ===== */
 #saveContainer {
-    animation: slideUp 0.3s ease-out;
+    animation: slideUp 0.2s ease-out;
+    background: #fef3f2;
+    border-top: 1px solid #fed7aa;
 }
 
 @keyframes slideUp {
     from {
         opacity: 0;
-        transform: translateY(20px);
+        transform: translateY(16px);
     }
     to {
         opacity: 1;
@@ -227,105 +278,96 @@ html, body {
     }
 }
 
-/* Storage Info */
+/* ===== STORAGE INFO ===== */
 #storageInfo {
-    color: #6c757d;
-    font-size: 0.85rem;
+    color: #6b7280;
+    font-size: 0.8125rem;
     font-weight: 500;
 }
 
-/* File list styles */
+/* ===== FILE LIST ===== */
 #fileList {
     user-select: none;
+    padding: 8px;
 }
 
 .file-item {
-    padding: 8px 12px;
-    margin-bottom: 4px;
-    border-radius: 4px;
+    padding: 10px 12px;
+    padding-left: 48px;
+    margin-bottom: 2px;
+    border-radius: 8px;
     cursor: pointer;
-    transition: background-color 0.2s, box-shadow 0.2s;
+    transition: all 0.15s ease;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     position: relative;
-    padding-left: 44px; /* Make room for selection circle */
+    background: transparent;
 }
 
-/* Selection Circle */
+.file-item:hover {
+    background-color: #f9fafb;
+}
+
+/* ===== SELECTION CIRCLE ===== */
 .selection-circle {
     position: absolute;
-    left: 8px;
+    left: 10px;
     top: 50%;
     transform: translateY(-50%);
-    width: 32px;
-    height: 32px;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
-    border: 3px solid #ff8c42;
+    border: 2px solid #d1d5db;
     background: white;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.15s ease;
     z-index: 10;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .selection-circle:hover {
-    border-color: #ff6b35;
-    background: #fff5f0;
-    transform: translateY(-50%) scale(1.15);
-    box-shadow: 0 3px 6px rgba(255, 107, 53, 0.3);
+    border-color: #f97316;
+    background: #fef3f2;
+    transform: translateY(-50%) scale(1.1);
 }
 
 .selection-circle i {
     opacity: 0;
     color: white;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: bold;
-    transition: opacity 0.2s;
+    transition: opacity 0.15s ease;
 }
 
 .file-item.selected .selection-circle {
-    background: linear-gradient(135deg, #ff8c42 0%, #ff6b35 100%);
-    border-color: #ff6b35;
-    box-shadow: 0 3px 8px rgba(255, 107, 53, 0.4);
+    background: #f97316;
+    border-color: #f97316;
+    box-shadow: 0 2px 4px 0 rgba(249, 115, 22, 0.3);
 }
 
 .file-item.selected .selection-circle i {
     opacity: 1;
-    color: white;
 }
 
-.file-item:hover {
-    background-color: #f8f9fa;
-}
-
+/* ===== SELECTED ITEM STYLING ===== */
 .file-item.selected {
-    background: linear-gradient(135deg, #fff5f0 0%, #ffe8d9 100%);
-    border-left: 4px solid #ff8c42;
-    color: #2c3e50;
+    background: #fef3f2;
+    border-left: 3px solid #f97316;
+    padding-left: 45px;
 }
 
 .file-item.folder {
     font-weight: 500;
 }
 
-.file-item.parent-nav {
-    font-weight: 500;
-    color: #6c757d;
-    font-style: italic;
-}
-
-.file-item.parent-nav:hover {
-    background-color: #e9ecef;
-}
-
 .file-item .icon {
     flex-shrink: 0;
     width: 20px;
     text-align: center;
+    font-size: 1.125rem;
 }
 
 .file-item .name {
@@ -333,54 +375,55 @@ html, body {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    font-size: 0.9375rem;
+    color: #111827;
+    font-weight: 500;
 }
 
 .file-item .metadata {
     flex-shrink: 0;
-    font-size: 0.85em;
-    opacity: 0.8;
+    font-size: 0.8125rem;
+    color: #6b7280;
 }
 
-.file-item.selected .metadata {
-    opacity: 1;
-}
-
-/* GPX file card-style layout */
+/* ===== GPX FILE CARDS ===== */
 .file-item.gpx {
-    padding: 10px 12px;
-    padding-left: 44px; /* Make room for selection circle */
-    margin-bottom: 8px;
-    border: 1px solid #e9ecef;
-    background-color: white;
+    padding: 12px 14px;
+    padding-left: 48px;
+    margin-bottom: 6px;
+    border: 1px solid #e5e7eb;
+    background-color: #ffffff;
     display: block;
+    border-radius: 10px;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
 
 .file-item.gpx:hover {
-    background-color: #f8f9fa;
-    border-color: #dee2e6;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    border-color: #d1d5db;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    transform: translateY(-1px);
 }
 
 .file-item.gpx.selected {
-    background: linear-gradient(135deg, #fff5f0 0%, #ffe8d9 100%);
-    border: 2px solid #ff8c42;
-    border-left: 4px solid #ff8c42;
-    color: #2c3e50;
-    box-shadow: 0 4px 8px rgba(255, 107, 53, 0.2);
+    background: #fef3f2;
+    border: 2px solid #f97316;
+    padding: 11px 13px;
+    padding-left: 46px;
+    box-shadow: 0 4px 6px -1px rgba(249, 115, 22, 0.15), 0 2px 4px -1px rgba(249, 115, 22, 0.1);
 }
 
 .file-item.gpx .file-item-header {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 6px;
+    gap: 10px;
+    margin-bottom: 8px;
 }
 
 .file-item.gpx .file-item-header .icon {
     flex-shrink: 0;
     width: 20px;
     text-align: center;
-    font-size: 1.1em;
+    font-size: 1.125rem;
 }
 
 .file-item.gpx .file-item-header .name {
@@ -388,40 +431,42 @@ html, body {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-weight: 500;
-    font-size: 0.95em;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    color: #111827;
 }
 
 .file-item.gpx .file-item-metadata {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
-    padding-left: 28px;
-    font-size: 0.8em;
-    opacity: 0.85;
-}
-
-.file-item.gpx.selected .file-item-metadata {
-    opacity: 0.95;
+    gap: 12px;
+    padding-left: 30px;
+    font-size: 0.8125rem;
+    color: #6b7280;
 }
 
 .file-item.gpx .metadata-item {
     display: inline-flex;
     align-items: center;
     gap: 4px;
+    font-weight: 500;
 }
 
-/* Editable name */
+.file-item.gpx .metadata-item i {
+    color: #9ca3af;
+}
+
+/* ===== EDITABLE NAME ===== */
 .file-item .name.editing {
     background: white;
-    color: black;
-    padding: 2px 6px;
-    border: 1px solid #ff8c42;
-    border-radius: 3px;
+    color: #111827;
+    padding: 4px 8px;
+    border: 2px solid #f97316;
+    border-radius: 6px;
     outline: none;
 }
 
-/* Non-GPX items (folders, routes, tracks, waypoints) */
+/* ===== NON-GPX ITEMS ===== */
 .file-item.folder,
 .file-item.route,
 .file-item.track,
@@ -430,10 +475,28 @@ html, body {
     align-items: center;
 }
 
-/* Map container */
+/* ===== GPX SECTION HEADERS ===== */
+.gpx-section-header {
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #6b7280;
+    background-color: transparent;
+    padding: 12px 12px 6px 12px;
+    margin-top: 12px;
+    margin-bottom: 4px;
+}
+
+.gpx-section-header:first-child {
+    margin-top: 0;
+}
+
+/* ===== MAP CONTAINER ===== */
 #mapContainer {
     position: relative;
     height: 100%;
+    background: #f9fafb;
 }
 
 #map {
@@ -441,14 +504,14 @@ html, body {
     height: 100%;
 }
 
-/* Leaflet custom styles */
+/* ===== LEAFLET STYLES ===== */
 .leaflet-container {
     font-family: inherit;
 }
 
 /* Custom waypoint marker */
 .waypoint-marker {
-    background-color: #dc3545;
+    background-color: #dc2626;
     border: 2px solid white;
     border-radius: 50%;
     width: 12px;
@@ -458,69 +521,50 @@ html, body {
 
 .waypoint-label {
     background-color: white;
-    border: 1px solid #dc3545;
-    border-radius: 3px;
+    border: 1px solid #dc2626;
+    border-radius: 4px;
     padding: 2px 6px;
     font-size: 11px;
     white-space: nowrap;
     box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
 
-/* GPX content view styles */
-.gpx-section-header {
-    font-weight: bold;
-    background-color: #e9ecef;
-    padding: 8px 12px;
-    margin-top: 8px;
-    margin-bottom: 4px;
-    border-radius: 4px;
-}
-
-.gpx-section-header:first-child {
-    margin-top: 0;
-}
-
-/* Loading spinner */
-.spinner-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(255, 255, 255, 0.8);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-}
-
-/* Empty state */
+/* ===== EMPTY STATE ===== */
 .empty-state {
     text-align: center;
-    padding: 40px 20px;
-    color: #6c757d;
+    padding: 48px 20px;
+    color: #9ca3af;
 }
 
 .empty-state i {
     font-size: 48px;
     margin-bottom: 16px;
+    opacity: 0.5;
 }
 
-/* Breadcrumb navigation */
+/* ===== BREADCRUMB PATH ===== */
 #currentPath {
-    font-family: monospace;
-    font-size: 0.95em;
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+    font-size: 0.8125rem;
     cursor: pointer;
-    color: #ff8c42;
+    color: #f97316;
+    font-weight: 500;
 }
 
 #currentPath:hover {
     text-decoration: underline;
 }
 
-/* Responsive adjustments */
+/* ===== RESPONSIVE ADJUSTMENTS ===== */
 @media (max-width: 768px) {
     .col-md-4, .col-md-8 {
         height: 50vh;
+    }
+
+    .fab {
+        width: 48px;
+        height: 48px;
+        bottom: 16px;
+        right: 16px;
     }
 }
