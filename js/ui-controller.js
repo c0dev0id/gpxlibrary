@@ -391,6 +391,8 @@ const UIController = (function() {
         const $toolbar = $('#actionToolbar');
         const $selectionCount = $('#selectionCount');
         const $pasteBtn = $('#pasteBtn');
+        const $copyBtn = $('#copyBtn');
+        const currentGpxId = FileManager.getCurrentGpxId();
 
         // Show toolbar if items are selected OR if clipboard has content
         const hasClipboard = clipboard && clipboard.items && clipboard.items.length > 0;
@@ -403,6 +405,11 @@ const UIController = (function() {
         } else {
             $toolbar.hide();
         }
+
+        // Copy button: only enabled when viewing GPX contents (routes, tracks, waypoints)
+        // Disabled when viewing file list (folders and GPX files)
+        const canCopy = currentGpxId !== null && selectedItems.length > 0;
+        $copyBtn.prop('disabled', !canCopy);
 
         // Enable paste button only if clipboard has content
         $pasteBtn.prop('disabled', !hasClipboard);
