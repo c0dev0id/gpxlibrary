@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPX Library - Motorcycle Route Manager</title>
+
+    <!-- Bootstrap 5.3 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <!-- Leaflet Routing Machine CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css?v=12">
+</head>
+<body class="d-flex flex-column vh-100">
+
+    <!-- Top Header -->
+    <header class="app-header bg-primary text-white shadow-sm">
+        <div class="container-fluid">
+            <div class="row align-items-center py-2">
+                <div class="col-auto">
+                    <h1 class="h5 mb-0">
+                        <i class="bi bi-map"></i>
+                        GPX Library
+                    </h1>
+                </div>
+                <div class="col">
+                    <input type="text" class="form-control form-control-sm" id="globalSearch" placeholder="Search routes..." style="max-width: 400px;">
+                </div>
+                <div class="col-auto">
+                    <div class="dropdown">
+                        <button class="btn btn-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-gear"></i> Options
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><h6 class="dropdown-header">Database</h6></li>
+                            <li>
+                                <a class="dropdown-item" href="#" id="exportDbBtn">
+                                    <i class="bi bi-download"></i> Export Database
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="#" id="importDbBtn">
+                                    <i class="bi bi-upload"></i> Import Database
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><h6 class="dropdown-header">Help</h6></li>
+                            <li><a class="dropdown-item" href="docs/user-guide.md" target="_blank"><i class="bi bi-book"></i> User Guide</a></li>
+                            <li><a class="dropdown-item" href="#" id="keyboardShortcutsBtn"><i class="bi bi-keyboard"></i> Keyboard Shortcuts</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="#" id="deleteDbBtn"><i class="bi bi-trash"></i> Delete Database (Dev)</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <div class="flex-grow-1 d-flex overflow-hidden">
+
+        <!-- Left Sidebar -->
+        <aside class="sidebar bg-light border-end d-flex flex-column" style="width: 380px;">
+
+            <!-- Breadcrumb Navigation -->
+            <div class="p-3 bg-white border-bottom">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-0" id="breadcrumbNav">
+                        <li class="breadcrumb-item active">
+                            <i class="bi bi-house-door"></i> Home
+                        </li>
+                    </ol>
+                </nav>
+            </div>
+
+            <!-- Contextual Action Toolbar (shown when items selected) -->
+            <div class="action-toolbar bg-white border-bottom p-2" id="actionToolbar" style="display: none;">
+                <div class="d-flex gap-2 justify-content-center">
+                    <button class="btn btn-sm btn-outline-primary" id="renameBtn" data-bs-toggle="tooltip" title="Rename (F2)">
+                        <i class="bi bi-pencil"></i> Rename
+                    </button>
+                    <button class="btn btn-sm btn-outline-success" id="downloadBtn" data-bs-toggle="tooltip" title="Download">
+                        <i class="bi bi-download"></i> Download
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" id="deleteBtn" data-bs-toggle="tooltip" title="Delete (Del)">
+                        <i class="bi bi-trash"></i> Delete
+                    </button>
+                </div>
+                <div class="text-center mt-1">
+                    <small class="text-muted" id="selectionCount">0 items selected</small>
+                </div>
+            </div>
+
+            <!-- Filter Panel (collapsible) -->
+            <div class="filter-panel bg-white border-bottom" id="filterContainer">
+                <div class="p-2">
+                    <button class="btn btn-sm btn-link text-decoration-none w-100 text-start p-2" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse">
+                        <i class="bi bi-funnel"></i> Filters
+                        <i class="bi bi-chevron-down float-end"></i>
+                    </button>
+                </div>
+                <div class="collapse" id="filterCollapse">
+                    <div class="p-3 pt-0">
+                        <div class="mb-2">
+                            <input type="text" class="form-control form-control-sm" id="filterName" placeholder="Name contains...">
+                        </div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-6">
+                                <input type="number" class="form-control form-control-sm" id="filterLengthMin" placeholder="Min km">
+                            </div>
+                            <div class="col-6">
+                                <input type="number" class="form-control form-control-sm" id="filterLengthMax" placeholder="Max km">
+                            </div>
+                        </div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-6">
+                                <input type="number" class="form-control form-control-sm" id="filterWaypointsMin" placeholder="Min stops">
+                            </div>
+                            <div class="col-6">
+                                <input type="number" class="form-control form-control-sm" id="filterWaypointsMax" placeholder="Max stops">
+                            </div>
+                        </div>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <input type="number" class="form-control form-control-sm" id="filterTimeMin" placeholder="Min hours">
+                            </div>
+                            <div class="col-6">
+                                <input type="number" class="form-control form-control-sm" id="filterTimeMax" placeholder="Max hours">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- File List -->
+            <div class="flex-grow-1 overflow-auto p-3" id="fileList">
+                <!-- Files will be populated here -->
+                <div class="empty-state text-center py-5" id="emptyState">
+                    <i class="bi bi-folder2-open display-1 text-muted"></i>
+                    <h5 class="mt-3 text-muted">No routes yet</h5>
+                    <p class="text-muted">Upload your first GPX file to get started</p>
+                    <button class="btn btn-primary" id="uploadBtnEmpty">
+                        <i class="bi bi-upload"></i> Upload GPX Files
+                    </button>
+                </div>
+            </div>
+
+            <!-- Bottom Actions -->
+            <div class="p-3 bg-white border-top">
+                <button class="btn btn-secondary w-100 mb-2" id="newFolderBtn">
+                    <i class="bi bi-folder-plus"></i> New Folder
+                </button>
+                <div class="text-center">
+                    <small class="text-muted" id="storageInfo">0 files • 0 KB</small>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-grow-1 d-flex flex-column">
+
+            <!-- Preview Header -->
+            <div class="preview-header bg-white border-bottom p-3">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1">
+                        <h4 class="mb-1" id="previewTitle">
+                            <i class="bi bi-map text-muted"></i>
+                            Select a route to preview
+                        </h4>
+                        <div id="previewMetadata" class="d-flex gap-3 mt-2">
+                            <!-- Metadata badges will appear here -->
+                        </div>
+                    </div>
+                    <button class="btn btn-sm btn-outline-secondary" id="fullscreenBtn" data-bs-toggle="tooltip" title="Fullscreen (F11)">
+                        <i class="bi bi-arrows-fullscreen"></i>
+                    </button>
+                </div>
+
+                <!-- Routing Strategy (shown only for routes) -->
+                <div class="mt-3" id="routingStrategyContainer" style="display: none;">
+                    <div class="card">
+                        <div class="card-body p-3">
+                            <div class="row g-2 align-items-center">
+                                <div class="col-auto">
+                                    <i class="bi bi-signpost-2"></i>
+                                    <strong>Routing:</strong>
+                                </div>
+                                <div class="col">
+                                    <select class="form-select form-select-sm" id="routingStrategy">
+                                        <option value="road" selected>🏍️ Road (Fast)</option>
+                                        <option value="road-no-motorway">🛣️ Road - Avoid Motorway</option>
+                                        <option value="curvy">🌄 Curvy (Scenic)</option>
+                                        <option value="prefer-unpaved">🏔️ Prefer Unpaved</option>
+                                    </select>
+                                </div>
+                                <div class="col-auto">
+                                    <button type="button" class="btn btn-sm btn-primary" id="updateTrackBtn" style="display: none;">
+                                        <i class="bi bi-arrow-repeat"></i> Update Track
+                                    </button>
+                                </div>
+                            </div>
+                            <small class="text-muted d-block mt-2">
+                                <i class="bi bi-info-circle"></i> Note: Public OSRM uses same routing for all strategies
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Map Container -->
+            <div class="flex-grow-1 position-relative" id="mapContainer">
+                <!-- Map will be rendered here -->
+                <div class="map-placeholder d-flex align-items-center justify-content-center h-100">
+                    <div class="text-center">
+                        <i class="bi bi-geo-alt display-1 text-muted"></i>
+                        <h5 class="text-muted mt-3">Map Preview</h5>
+                        <p class="text-muted">Select a route to see it on the map</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Save Button (shown when changes made) -->
+            <div class="p-3 bg-warning bg-opacity-10 border-top" id="saveContainer" style="display: none;">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-exclamation-triangle text-warning"></i>
+                    <span class="flex-grow-1">You have unsaved changes</span>
+                    <button type="button" class="btn btn-success" id="saveChangesBtn">
+                        <i class="bi bi-save"></i> Save Changes
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Floating Action Button (FAB) for Upload -->
+    <button class="fab btn btn-primary rounded-circle shadow-lg" id="uploadBtn" data-bs-toggle="tooltip" title="Upload GPX Files">
+        <i class="bi bi-plus-lg fs-4"></i>
+    </button>
+
+    <!-- Hidden file inputs -->
+    <input type="file" id="gpxFileInput" accept=".gpx" multiple style="display: none;">
+    <input type="file" id="dbFileInput" accept=".db" style="display: none;">
+
+    <!-- External Libraries -->
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+
+    <!-- Bootstrap Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Leaflet -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Leaflet Routing Machine -->
+    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+
+    <!-- SQL.js -->
+    <script src="https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/sql-wasm.js"></script>
+
+    <!-- JSZip -->
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+
+    <!-- Application Modules -->
+    <script src="js/database.js?v=12"></script>
+    <script src="js/gpx-parser.js?v=12"></script>
+    <script src="js/gpx-normalizer.js?v=12"></script>
+    <script src="js/routing.js?v=12"></script>
+    <script src="js/file-manager.js?v=12"></script>
+    <script src="js/map-preview.js?v=12"></script>
+    <script src="js/ui-controller.js?v=12"></script>
+    <script src="js/app.js?v=12"></script>
+
+    <script>
+        // Initialize Bootstrap tooltips
+        document.addEventListener('DOMContentLoaded', function() {
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+
+            // Connect empty state upload button
+            document.getElementById('uploadBtnEmpty').addEventListener('click', function() {
+                document.getElementById('uploadBtn').click();
+            });
+
+            // Keyboard shortcuts help
+            document.getElementById('keyboardShortcutsBtn').addEventListener('click', function(e) {
+                e.preventDefault();
+                const shortcuts = `
+                    <h5>Keyboard Shortcuts</h5>
+                    <table class="table table-sm">
+                        <tr><td><kbd>↑</kbd> <kbd>↓</kbd></td><td>Navigate list</td></tr>
+                        <tr><td><kbd>Enter</kbd></td><td>Open folder/file</td></tr>
+                        <tr><td><kbd>Backspace</kbd></td><td>Go up one level</td></tr>
+                        <tr><td><kbd>Ctrl+C</kbd></td><td>Copy</td></tr>
+                        <tr><td><kbd>Ctrl+V</kbd></td><td>Paste</td></tr>
+                        <tr><td><kbd>F2</kbd></td><td>Rename</td></tr>
+                        <tr><td><kbd>Delete</kbd></td><td>Delete</td></tr>
+                        <tr><td><kbd>Ctrl+Click</kbd></td><td>Multi-select</td></tr>
+                    </table>
+                `;
+                alert(shortcuts.replace(/<[^>]*>/g, '\n')); // Simple alert for now
+            });
+        });
+    </script>
+</body>
+</html>

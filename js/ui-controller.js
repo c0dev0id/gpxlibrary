@@ -66,6 +66,72 @@ const UIController = (function() {
     }
     
     /**
+     * Update breadcrumb navigation
+     */
+    function updateBreadcrumb() {
+        const currentFolderId = FileManager.getCurrentFolderId();
+        const currentGpxId = FileManager.getCurrentGpxId();
+        const $breadcrumb = $('#breadcrumbNav');
+
+        // Clear existing breadcrumb
+        $breadcrumb.empty();
+
+        // Build path parts
+        const pathParts = [];
+        let folderId = currentFolderId;
+
+        while (folderId !== null) {
+            const folder = Database.query('SELECT * FROM folders WHERE id = ?', [folderId])[0];
+            pathParts.unshift({ id: folderId, name: folder.name });
+            folderId = folder.parent_id;
+        }
+
+        // Add Home
+        const $home = $('<li class="breadcrumb-item"></li>');
+        if (currentFolderId === null && !currentGpxId) {
+            $home.addClass('active').html('<i class="bi bi-house-door"></i> Home');
+        } else {
+            $home.html(`<a href="#" data-folder-id="null"><i class="bi bi-house-door"></i> Home</a>`);
+        }
+        $breadcrumb.append($home);
+
+        // Add folder path
+        pathParts.forEach((part, index) => {
+            const $item = $('<li class="breadcrumb-item"></li>');
+            if (index === pathParts.length - 1 && !currentGpxId) {
+                $item.addClass('active').text(part.name);
+            } else {
+                $item.html(`<a href="#" data-folder-id="${part.id}">${part.name}</a>`);
+            }
+            $breadcrumb.append($item);
+        });
+
+        // Add GPX file if viewing one
+        if (currentGpxId) {
+            const gpx = FileManager.getGpxFile(currentGpxId);
+            const $gpxItem = $('<li class="breadcrumb-item active"></li>').text(gpx.name);
+            $breadcrumb.append($gpxItem);
+        }
+
+        // Handle breadcrumb clicks
+        $breadcrumb.find('a').off('click').on('click', function(e) {
+            e.preventDefault();
+            const folderId = $(this).data('folder-id');
+            FileManager.setCurrentFolderId(folderId === 'null' ? null : folderId);
+            FileManager.setCurrentGpxId(null);
+            FileManager.clearSelectedItems();
+            renderFileList();
+            updateActionToolbar();
+        });
+
+        // Update old path element for backward compatibility
+        const path = currentGpxId
+            ? FileManager.getFolderPath(currentFolderId) + '/' + FileManager.getGpxFile(currentGpxId).name
+            : FileManager.getFolderPath(currentFolderId);
+        $('#currentPath').text(path);
+    }
+
+    /**
      * Render file list
      */
     function renderFileList() {
@@ -73,13 +139,13 @@ const UIController = (function() {
         const currentGpxId = FileManager.getCurrentGpxId();
         const $fileList = $('#fileList');
         $fileList.empty();
-        
-        // Update current path
-        const path = currentGpxId 
-            ? FileManager.getFolderPath(currentFolderId) + '/' + FileManager.getGpxFile(currentGpxId).name
-            : FileManager.getFolderPath(currentFolderId);
-        $('#currentPath').text(path);
-        
+
+        // Update breadcrumb navigation
+        updateBreadcrumb();
+
+        // Update storage info
+        updateStorageInfo();
+
         if (currentGpxId) {
             // Show GPX contents
             $('#filterContainer').hide(); // Hide filter when in GPX view
@@ -89,6 +155,10 @@ const UIController = (function() {
             $('#filterContainer').show(); // Show filter when in folder view
             renderFolderContents(currentFolderId, $fileList);
         }
+
+        // Update empty state
+        const hasContent = $fileList.children().length > 0;
+        $('#emptyState').toggle(!hasContent);
     }
     
     /**
@@ -247,6 +317,38 @@ const UIController = (function() {
     }
     
     /**
+     * Update action toolbar based on selection
+     */
+    function updateActionToolbar() {
+        const selectedItems = FileManager.getSelectedItems();
+        const $toolbar = $('#actionToolbar');
+        const $selectionCount = $('#selectionCount');
+
+        if (selectedItems.length > 0) {
+            $toolbar.show();
+            $selectionCount.text(selectedItems.length === 1 ? '1 item selected' : `${selectedItems.length} items selected`);
+        } else {
+            $toolbar.hide();
+        }
+    }
+
+    /**
+     * Update storage info display
+     */
+    function updateStorageInfo() {
+        const files = Database.query('SELECT * FROM gpx_files');
+        const totalSize = files.reduce((sum, file) => sum + (file.content?.length || 0), 0);
+        const sizeKB = Math.round(totalSize / 1024);
+        const sizeMB = (totalSize / (1024 * 1024)).toFixed(2);
+
+        const fileCount = files.length;
+        const fileText = fileCount === 1 ? '1 file' : `${fileCount} files`;
+        const sizeText = sizeKB < 1024 ? `${sizeKB} KB` : `${sizeMB} MB`;
+
+        $('#storageInfo').text(`${fileText} • ${sizeText}`);
+    }
+
+    /**
      * Handle item click (selection)
      */
     function handleItemClick(e, type, id, $item) {
@@ -274,6 +376,9 @@ const UIController = (function() {
             // Update preview
             updatePreview(type, id);
         }
+
+        // Update action toolbar
+        updateActionToolbar();
     }
 
     /**
@@ -918,6 +1023,7 @@ const UIController = (function() {
         }))
         .then(() => {
             FileManager.clearSelection();
+            updateActionToolbar();
             renderFileList();
         })
         .catch(error => {
