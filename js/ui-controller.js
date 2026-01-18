@@ -93,7 +93,7 @@ const UIController = (function() {
         if (currentFolderId === null && !currentGpxId) {
             $home.addClass('active').html('<i class="bi bi-house-door"></i> Home');
         } else {
-            const $homeLink = $('<a href="#"><i class="bi bi-house-door"></i> Home</a>');
+            const $homeLink = $('<a href="#" class="breadcrumb-home"><i class="bi bi-house-door"></i> Home</a>');
             $homeLink.data('folder-id', null);
             $home.append($homeLink);
         }
@@ -122,7 +122,20 @@ const UIController = (function() {
         // Handle breadcrumb clicks
         $breadcrumb.find('a').off('click').on('click', function(e) {
             e.preventDefault();
-            const folderId = $(this).data('folder-id');
+            const $link = $(this);
+
+            // Special handling for home link
+            if ($link.hasClass('breadcrumb-home')) {
+                FileManager.setCurrentFolderId(null);
+                FileManager.setCurrentGpxId(null);
+                FileManager.clearSelectedItems();
+                renderFileList();
+                updateActionToolbar();
+                return;
+            }
+
+            // Handle folder links
+            const folderId = $link.data('folder-id');
             FileManager.setCurrentFolderId(folderId);
             FileManager.setCurrentGpxId(null);
             FileManager.clearSelectedItems();
@@ -362,6 +375,49 @@ const UIController = (function() {
             }
         }
 
+        // Only add drag and drop for folders and GPX files (not GPX contents)
+        const currentGpxId = FileManager.getCurrentGpxId();
+        if (!currentGpxId && (type === 'folder' || type === 'gpx')) {
+            // Make items draggable
+            $item.attr('draggable', 'true');
+
+            // Drag start - store dragged items
+            $item.on('dragstart', function(e) {
+                handleDragStart(e, type, id, $item);
+            });
+
+            // Drag end - cleanup
+            $item.on('dragend', function(e) {
+                handleDragEnd(e);
+            });
+
+            // Only folders can be drop targets
+            if (type === 'folder') {
+                // Allow drag over
+                $item.on('dragover', function(e) {
+                    e.preventDefault();
+                    handleDragOver(e, $item);
+                });
+
+                // Drag enter - visual feedback
+                $item.on('dragenter', function(e) {
+                    e.preventDefault();
+                    handleDragEnter(e, $item);
+                });
+
+                // Drag leave - remove visual feedback
+                $item.on('dragleave', function(e) {
+                    handleDragLeave(e, $item);
+                });
+
+                // Drop - move items
+                $item.on('drop', function(e) {
+                    e.preventDefault();
+                    handleDrop(e, id, $item);
+                });
+            }
+        }
+
         // Selection circle click - multi-select toggle
         $selectionCircle.on('click', function(e) {
             e.stopPropagation();
@@ -406,10 +462,8 @@ const UIController = (function() {
             $toolbar.hide();
         }
 
-        // Copy button: only enabled when viewing GPX contents (routes, tracks, waypoints)
-        // Disabled when viewing file list (folders and GPX files)
-        const canCopy = currentGpxId !== null && selectedItems.length > 0;
-        $copyBtn.prop('disabled', !canCopy);
+        // Copy button: enabled when items are selected
+        $copyBtn.prop('disabled', selectedItems.length === 0);
 
         // Enable paste button only if clipboard has content
         $pasteBtn.prop('disabled', !hasClipboard);
@@ -1451,20 +1505,23 @@ const UIController = (function() {
      */
     function performCopy() {
         const selectedItems = FileManager.getSelectedItems();
-        if (selectedItems.length > 0) {
-            // Only copy routes, tracks, waypoints
+        const currentGpxId = FileManager.getCurrentGpxId();
+
+        if (selectedItems.length === 0) return;
+
+        if (currentGpxId) {
+            // Copying routes, tracks, waypoints from within a GPX file
             const copyableItems = selectedItems.filter(item =>
                 item.type === 'route' || item.type === 'track' || item.type === 'waypoint'
             );
             if (copyableItems.length > 0) {
                 // Store the actual data, not just references
-                const sourceGpxId = FileManager.getCurrentGpxId();
-                const sourceGpx = FileManager.getGpxFile(sourceGpxId);
+                const sourceGpx = FileManager.getGpxFile(currentGpxId);
                 const sourceGpxData = GPXParser.parse(sourceGpx.content);
 
                 clipboard = {
                     items: copyableItems,
-                    sourceGpxId: sourceGpxId,
+                    sourceGpxId: currentGpxId,
                     data: {
                         routes: [],
                         tracks: [],
@@ -1493,7 +1550,22 @@ const UIController = (function() {
                 });
 
                 updatePreviewTitle('Copied ' + copyableItems.length + ' item(s)', 'Use Ctrl+V or click Paste to paste');
-                updateActionToolbar(); // Update to enable paste button
+                updateActionToolbar();
+            }
+        } else {
+            // Copying folders and GPX files from file list
+            const copyableItems = selectedItems.filter(item =>
+                item.type === 'folder' || item.type === 'gpx'
+            );
+            if (copyableItems.length > 0) {
+                clipboard = {
+                    items: copyableItems,
+                    sourceFolderId: FileManager.getCurrentFolderId(),
+                    type: 'file-list'
+                };
+
+                alert(`Copied ${copyableItems.length} item(s). Use Ctrl+V or click Paste to paste into a folder.`);
+                updateActionToolbar();
             }
         }
     }
@@ -1502,14 +1574,70 @@ const UIController = (function() {
      * Perform paste operation
      */
     function performPaste() {
-        if (clipboard && clipboard.items.length > 0) {
-            const targetGpxId = FileManager.getCurrentGpxId();
-            if (targetGpxId) {
-                handlePasteIntoGpx(targetGpxId, clipboard);
-            } else {
-                handlePasteAsNewGpx(clipboard);
-            }
+        if (!clipboard || clipboard.items.length === 0) return;
+
+        const currentGpxId = FileManager.getCurrentGpxId();
+
+        if (clipboard.type === 'file-list') {
+            // Pasting folders/GPX files
+            const targetFolderId = FileManager.getCurrentFolderId();
+            handlePasteFiles(clipboard, targetFolderId);
+        } else if (currentGpxId) {
+            // Pasting routes/tracks/waypoints into GPX
+            handlePasteIntoGpx(currentGpxId, clipboard);
+        } else {
+            // Pasting routes/tracks/waypoints as new GPX
+            handlePasteAsNewGpx(clipboard);
         }
+    }
+
+    /**
+     * Handle pasting files/folders into a folder
+     */
+    async function handlePasteFiles(clipboard, targetFolderId) {
+        try {
+            for (const item of clipboard.items) {
+                if (item.type === 'gpx') {
+                    // Copy GPX file to target folder
+                    const gpxFile = FileManager.getGpxFile(item.id);
+                    await FileManager.createGpxFile(gpxFile.name, gpxFile.content, targetFolderId);
+                } else if (item.type === 'folder') {
+                    // Copy folder and its contents recursively
+                    const folder = Database.query('SELECT * FROM folders WHERE id = ?', [item.id])[0];
+                    await copyFolderRecursive(folder, targetFolderId);
+                }
+            }
+
+            FileManager.clearSelection();
+            clipboard = null;
+            renderFileList();
+            updateActionToolbar();
+            alert('Items pasted successfully!');
+        } catch (error) {
+            alert('Failed to paste items: ' + error.message);
+        }
+    }
+
+    /**
+     * Copy folder and its contents recursively
+     */
+    async function copyFolderRecursive(sourceFolder, targetParentId) {
+        // Create new folder
+        const newFolderId = await FileManager.createFolder(sourceFolder.name, targetParentId);
+
+        // Copy all GPX files in this folder
+        const gpxFiles = Database.query('SELECT * FROM gpx_files WHERE folder_id = ?', [sourceFolder.id]);
+        for (const gpxFile of gpxFiles) {
+            await FileManager.createGpxFile(gpxFile.name, gpxFile.content, newFolderId);
+        }
+
+        // Copy all subfolders recursively
+        const subfolders = Database.query('SELECT * FROM folders WHERE parent_id = ?', [sourceFolder.id]);
+        for (const subfolder of subfolders) {
+            await copyFolderRecursive(subfolder, newFolderId);
+        }
+
+        return newFolderId;
     }
 
     function handleCopyPaste(e) {
@@ -1521,6 +1649,143 @@ const UIController = (function() {
         else if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
             performPaste();
         }
+    }
+
+    /**
+     * Drag and Drop Handlers
+     */
+    let draggedItems = null;
+
+    function handleDragStart(e, type, id, $item) {
+        const selectedItems = FileManager.getSelectedItems();
+        const isItemSelected = selectedItems.some(i => i.type === type && i.id === id);
+
+        // If dragging an item that's not selected, select it first
+        if (!isItemSelected) {
+            FileManager.clearSelection();
+            $('.file-item').removeClass('selected');
+            FileManager.addSelectedItem({ type, id });
+            $item.addClass('selected');
+        }
+
+        // Store all selected items for dragging
+        draggedItems = FileManager.getSelectedItems();
+
+        // Set drag effect
+        e.originalEvent.dataTransfer.effectAllowed = 'move';
+        e.originalEvent.dataTransfer.setData('text/plain', 'moving files');
+
+        // Add dragging class to all selected items
+        $('.file-item.selected').addClass('dragging');
+    }
+
+    function handleDragEnd(e) {
+        // Remove dragging class from all items
+        $('.file-item').removeClass('dragging').removeClass('drag-over');
+        draggedItems = null;
+    }
+
+    function handleDragOver(e, $item) {
+        // Prevent default to allow drop
+        e.preventDefault();
+        e.originalEvent.dataTransfer.dropEffect = 'move';
+    }
+
+    function handleDragEnter(e, $item) {
+        // Check if dragging over self
+        const targetType = $item.data('type');
+        const targetId = $item.data('id');
+
+        if (draggedItems) {
+            const isDraggingSelf = draggedItems.some(item =>
+                item.type === targetType && item.id === targetId
+            );
+
+            if (!isDraggingSelf) {
+                $item.addClass('drag-over');
+            }
+        }
+    }
+
+    function handleDragLeave(e, $item) {
+        // Only remove drag-over if we're actually leaving (not entering a child)
+        if (e.target === $item[0]) {
+            $item.removeClass('drag-over');
+        }
+    }
+
+    async function handleDrop(e, targetFolderId, $item) {
+        e.preventDefault();
+        $item.removeClass('drag-over');
+
+        if (!draggedItems || draggedItems.length === 0) {
+            return;
+        }
+
+        // Prevent dropping into self (if dragging a folder onto itself)
+        const isDroppingIntoSelf = draggedItems.some(item =>
+            item.type === 'folder' && item.id === targetFolderId
+        );
+
+        if (isDroppingIntoSelf) {
+            alert('Cannot move a folder into itself');
+            return;
+        }
+
+        try {
+            // Move each item to the target folder
+            for (const item of draggedItems) {
+                if (item.type === 'folder') {
+                    // Check if we're trying to move a parent folder into one of its descendants
+                    if (await isFolderDescendant(targetFolderId, item.id)) {
+                        alert(`Cannot move folder "${Database.query('SELECT name FROM folders WHERE id = ?', [item.id])[0]?.name}" into one of its subfolders`);
+                        continue;
+                    }
+                    await Database.execute(
+                        'UPDATE folders SET parent_id = ? WHERE id = ?',
+                        [targetFolderId, item.id]
+                    );
+                } else if (item.type === 'gpx') {
+                    await Database.execute(
+                        'UPDATE gpx_files SET folder_id = ? WHERE id = ?',
+                        [targetFolderId, item.id]
+                    );
+                }
+            }
+
+            await Database.saveToIndexedDB();
+
+            // Clear selection and refresh
+            FileManager.clearSelection();
+            renderFileList();
+            updateActionToolbar();
+
+            const itemCount = draggedItems.length;
+            const targetName = Database.query('SELECT name FROM folders WHERE id = ?', [targetFolderId])[0]?.name || 'folder';
+            alert(`Moved ${itemCount} item(s) to "${targetName}"`);
+
+        } catch (error) {
+            alert('Failed to move items: ' + error.message);
+        }
+    }
+
+    /**
+     * Check if targetId is a descendant of folderId
+     */
+    async function isFolderDescendant(targetId, folderId) {
+        let currentId = targetId;
+
+        while (currentId !== null) {
+            if (currentId === folderId) {
+                return true;
+            }
+
+            const folder = Database.query('SELECT parent_id FROM folders WHERE id = ?', [currentId])[0];
+            if (!folder) break;
+            currentId = folder.parent_id;
+        }
+
+        return false;
     }
 
     /**

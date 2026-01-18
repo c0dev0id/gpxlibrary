@@ -359,6 +359,23 @@ html, body {
     padding-left: 45px;
 }
 
+/* ===== DRAG AND DROP ===== */
+.file-item.dragging {
+    opacity: 0.5;
+    cursor: move;
+}
+
+.file-item.drag-over {
+    background: #fef3f2;
+    border: 2px dashed #f97316;
+    box-shadow: 0 4px 6px -1px rgba(249, 115, 22, 0.2);
+}
+
+.file-item.folder.drag-over {
+    transform: scale(1.02);
+    transition: all 0.2s ease;
+}
+
 .file-item.folder {
     font-weight: 500;
 }
