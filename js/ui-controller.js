@@ -134,7 +134,7 @@ const UIController = (function() {
             if ($link.hasClass('breadcrumb-home')) {
                 FileManager.setCurrentFolderId(null);
                 FileManager.setCurrentGpxId(null);
-                FileManager.clearSelectedItems();
+                FileManager.clearSelection();
                 renderFileList();
                 updateActionToolbar();
                 return;
@@ -144,7 +144,7 @@ const UIController = (function() {
             const folderId = $link.data('folder-id');
             FileManager.setCurrentFolderId(folderId);
             FileManager.setCurrentGpxId(null);
-            FileManager.clearSelectedItems();
+            FileManager.clearSelection();
             renderFileList();
             updateActionToolbar();
         });
