@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Run Database Migrations</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            color: #007bff;
+            margin-top: 0;
+        }
+
+        .info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+
+        #output {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: monospace;
+            margin-top: 20px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .success {
+            color: #89d185;
+        }
+
+        .error {
+            color: #f48771;
+        }
+
+        .warning {
+            color: #ffc107;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Database Migrations</h1>
+
+        <div class="info">
+            <strong>What does this do?</strong>
+            <p>This tool runs database migrations to update your existing database schema with any missing columns or tables. This is safe to run and won't delete your data.</p>
+            <p><strong>Missing columns this will add:</strong></p>
+            <ul>
+                <li><code>index_in_gpx</code> to routes, tracks, and waypoints tables</li>
+                <li><code>routing_strategy</code> to routes table</li>
+            </ul>
+        </div>
+
+        <button id="runBtn" onclick="runMigrations()">Run Migrations</button>
+        <button onclick="checkSchema()">Check Current Schema</button>
+        <button onclick="location.reload()">Refresh</button>
+
+        <div id="output"></div>
+    </div>
+
+    <!-- External Libraries -->
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/sql-wasm.js"></script>
+
+    <!-- Application Modules -->
+    <script src="../js/database.js"></script>
+
+    <script>
+        const output = document.getElementById('output');
+
+        function log(message, className = '') {
+            const line = document.createElement('div');
+            line.textContent = message;
+            if (className) line.className = className;
+            output.appendChild(line);
+            output.scrollTop = output.scrollHeight;
+            console.log(message);
+        }
+
+        async function init() {
+            try {
+                log('Initializing database...');
+                await Database.init(); // Use production database
+                log('Database initialized successfully', 'success');
+                log('Ready to run migrations\n');
+                document.getElementById('runBtn').disabled = false;
+            } catch (error) {
+                log('Failed to initialize: ' + error.message, 'error');
+            }
+        }
+
+        async function checkSchema() {
+            output.innerHTML = '';
+            log('Checking current database schema...\n');
+
+            try {
+                // Check routes table
+                const routesInfo = Database.db.exec("PRAGMA table_info(routes)");
+                log('Routes table columns:', 'success');
+                if (routesInfo[0]) {
+                    routesInfo[0].values.forEach(row => {
+                        log(`  - ${row[1]} (${row[2]})`);
+                    });
+                }
+
+                log('');
+
+                // Check tracks table
+                const tracksInfo = Database.db.exec("PRAGMA table_info(tracks)");
+                log('Tracks table columns:', 'success');
+                if (tracksInfo[0]) {
+                    tracksInfo[0].values.forEach(row => {
+                        log(`  - ${row[1]} (${row[2]})`);
+                    });
+                }
+
+                log('');
+
+                // Check waypoints table
+                const waypointsInfo = Database.db.exec("PRAGMA table_info(waypoints)");
+                log('Waypoints table columns:', 'success');
+                if (waypointsInfo[0]) {
+                    waypointsInfo[0].values.forEach(row => {
+                        log(`  - ${row[1]} (${row[2]})`);
+                    });
+                }
+
+                log('\nSchema check complete!', 'success');
+            } catch (error) {
+                log('Error checking schema: ' + error.message, 'error');
+            }
+        }
+
+        async function runMigrations() {
+            output.innerHTML = '';
+            log('Running database migrations...\n');
+
+            try {
+                // Check before
+                log('BEFORE migrations:', 'warning');
+                const waypointsBefore = Database.db.exec("PRAGMA table_info(waypoints)");
+                const hasIndexBefore = waypointsBefore[0]?.values?.some(row => row[1] === 'index_in_gpx');
+                log(`  waypoints.index_in_gpx exists: ${hasIndexBefore}`);
+
+                log('');
+
+                // Run migrations by re-initializing (which calls runMigrations internally)
+                log('Running migrations...', 'warning');
+
+                // Manually run the migration logic
+                const waypointsColumns = Database.db.exec("PRAGMA table_info(waypoints)");
+                const hasWaypointsIndex = waypointsColumns[0]?.values?.some(row => row[1] === 'index_in_gpx');
+
+                if (!hasWaypointsIndex) {
+                    log('Adding index_in_gpx column to waypoints table...', 'warning');
+                    Database.db.run('ALTER TABLE waypoints ADD COLUMN index_in_gpx INTEGER DEFAULT 0');
+                    log('✓ Added index_in_gpx to waypoints', 'success');
+                } else {
+                    log('✓ waypoints.index_in_gpx already exists', 'success');
+                }
+
+                // Check routes
+                const routesColumns = Database.db.exec("PRAGMA table_info(routes)");
+                const hasRoutesIndex = routesColumns[0]?.values?.some(row => row[1] === 'index_in_gpx');
+
+                if (!hasRoutesIndex) {
+                    log('Adding index_in_gpx column to routes table...', 'warning');
+                    Database.db.run('ALTER TABLE routes ADD COLUMN index_in_gpx INTEGER DEFAULT 0');
+                    log('✓ Added index_in_gpx to routes', 'success');
+                } else {
+                    log('✓ routes.index_in_gpx already exists', 'success');
+                }
+
+                // Check tracks
+                const tracksColumns = Database.db.exec("PRAGMA table_info(tracks)");
+                const hasTracksIndex = tracksColumns[0]?.values?.some(row => row[1] === 'index_in_gpx');
+
+                if (!hasTracksIndex) {
+                    log('Adding index_in_gpx column to tracks table...', 'warning');
+                    Database.db.run('ALTER TABLE tracks ADD COLUMN index_in_gpx INTEGER DEFAULT 0');
+                    log('✓ Added index_in_gpx to tracks', 'success');
+                } else {
+                    log('✓ tracks.index_in_gpx already exists', 'success');
+                }
+
+                // Check routing_strategy
+                const hasRoutingStrategy = routesColumns[0]?.values?.some(row => row[1] === 'routing_strategy');
+
+                if (!hasRoutingStrategy) {
+                    log('Adding routing_strategy column to routes table...', 'warning');
+                    Database.db.run('ALTER TABLE routes ADD COLUMN routing_strategy TEXT DEFAULT "road"');
+                    log('✓ Added routing_strategy to routes', 'success');
+                } else {
+                    log('✓ routes.routing_strategy already exists', 'success');
+                }
+
+                // Save to IndexedDB
+                log('\nSaving updated database to IndexedDB...', 'warning');
+                await Database.saveToIndexedDB();
+                log('✓ Database saved', 'success');
+
+                log('');
+                log('AFTER migrations:', 'warning');
+                const waypointsAfter = Database.db.exec("PRAGMA table_info(waypoints)");
+                const hasIndexAfter = waypointsAfter[0]?.values?.some(row => row[1] === 'index_in_gpx');
+                log(`  waypoints.index_in_gpx exists: ${hasIndexAfter}`);
+
+                log('\n✅ Migrations completed successfully!', 'success');
+                log('\nYou can now upload GPX files without errors.', 'success');
+                log('Close this page and reload the main application.', 'success');
+
+            } catch (error) {
+                log('\n❌ Migration failed: ' + error.message, 'error');
+                log(error.stack, 'error');
+            }
+        }
+
+        // Initialize on load
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
