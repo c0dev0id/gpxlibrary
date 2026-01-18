@@ -15,11 +15,11 @@ const FileManager = (function() {
      */
     async function createFolder(name, parentId = null) {
         const timestamp = Date.now();
-        await Database.execute(
+        const folderId = await Database.execute(
             'INSERT INTO folders (name, parent_id, created_at) VALUES (?, ?, ?)',
             [name, parentId, timestamp]
         );
-        return Database.getLastInsertId();
+        return folderId;
     }
     
     /**

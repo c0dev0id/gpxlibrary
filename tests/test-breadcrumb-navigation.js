@@ -84,6 +84,12 @@ const BreadcrumbNavigationTests = (function() {
         const fooId = await FileManager.createFolder('foo');
         assertNotNull(fooId, 'Folder "foo" should be created');
 
+        // Verify folder exists in database
+        const fooFolderCheck = Database.query('SELECT * FROM folders WHERE id = ?', [fooId]);
+        if (fooFolderCheck.length === 0) {
+            throw new Error(`Folder "foo" (id: ${fooId}) was not found in database after creation`);
+        }
+
         // Step 2: Navigate into folder "foo"
         FileManager.setCurrentFolderId(fooId);
         UIController.renderFileList();
