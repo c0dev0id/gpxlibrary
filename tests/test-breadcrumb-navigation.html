@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Breadcrumb Navigation Tests</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <!-- Leaflet Routing Machine CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -197,13 +204,25 @@
     <!-- Hidden UI elements for testing -->
     <div id="fileList" style="display: none;"></div>
     <div id="actionToolbar" style="display: none;"></div>
+    <div id="mapContainer" style="display: none;">
+        <div id="map" style="height: 400px;"></div>
+    </div>
+    <div id="previewTitle" style="display: none;"></div>
+    <div id="previewMetadata" style="display: none;"></div>
+    <div id="routingStrategyContainer" style="display: none;">
+        <select id="routingStrategy">
+            <option value="road">Road</option>
+            <option value="bike">Bike</option>
+        </select>
+        <button id="updateTrackBtn">Update Track</button>
+    </div>
 
     <!-- External Libraries -->
-    <script src="../lib/jquery-3.7.0.min.js"></script>
-    <script src="../lib/sql.js"></script>
-    <script src="../lib/leaflet.js"></script>
-    <script src="../lib/leaflet-routing-machine.js"></script>
-    <script src="../lib/jszip.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/sql-wasm.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 
     <!-- Application Modules -->
     <script src="../js/database.js"></script>
