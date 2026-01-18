@@ -1680,11 +1680,36 @@ const UIController = (function() {
         // Store all selected items for dragging
         draggedItems = FileManager.getSelectedItems();
 
+        // Create custom drag image with opacity
+        const $dragImage = $item.clone();
+        $dragImage.css({
+            position: 'absolute',
+            top: '-1000px',
+            left: '-1000px',
+            opacity: 0.5,
+            width: $item.outerWidth() + 'px',
+            height: $item.outerHeight() + 'px',
+            pointerEvents: 'none'
+        });
+        $('body').append($dragImage);
+
+        // Set the custom drag image
+        const dragImageElement = $dragImage[0];
+        e.originalEvent.dataTransfer.setDragImage(dragImageElement,
+            e.originalEvent.offsetX || $item.outerWidth() / 2,
+            e.originalEvent.offsetY || $item.outerHeight() / 2
+        );
+
+        // Remove the temporary drag image after a short delay
+        setTimeout(() => {
+            $dragImage.remove();
+        }, 0);
+
         // Set drag effect
         e.originalEvent.dataTransfer.effectAllowed = 'move';
         e.originalEvent.dataTransfer.setData('text/plain', 'moving files');
 
-        // Add dragging class to all selected items
+        // Add dragging class to all selected items (for the original items in the list)
         $('.file-item.selected').addClass('dragging');
     }
 
