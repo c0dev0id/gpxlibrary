@@ -93,7 +93,9 @@ const UIController = (function() {
         if (currentFolderId === null && !currentGpxId) {
             $home.addClass('active').html('<i class="bi bi-house-door"></i> Home');
         } else {
-            $home.html(`<a href="#" data-folder-id="null"><i class="bi bi-house-door"></i> Home</a>`);
+            const $homeLink = $('<a href="#"><i class="bi bi-house-door"></i> Home</a>');
+            $homeLink.data('folder-id', null);
+            $home.append($homeLink);
         }
         $breadcrumb.append($home);
 
@@ -103,7 +105,9 @@ const UIController = (function() {
             if (index === pathParts.length - 1 && !currentGpxId) {
                 $item.addClass('active').text(part.name);
             } else {
-                $item.html(`<a href="#" data-folder-id="${part.id}">${part.name}</a>`);
+                const $link = $('<a href="#"></a>').text(part.name);
+                $link.data('folder-id', part.id);
+                $item.append($link);
             }
             $breadcrumb.append($item);
         });
@@ -119,7 +123,7 @@ const UIController = (function() {
         $breadcrumb.find('a').off('click').on('click', function(e) {
             e.preventDefault();
             const folderId = $(this).data('folder-id');
-            FileManager.setCurrentFolderId(folderId === 'null' ? null : folderId);
+            FileManager.setCurrentFolderId(folderId);
             FileManager.setCurrentGpxId(null);
             FileManager.clearSelectedItems();
             renderFileList();
