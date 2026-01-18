@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Complete Flow</title>
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/sql-wasm.js"></script>
+</head>
+<body>
+    <h1>Complete Flow Test</h1>
+    <div id="output"></div>
+
+    <script src="../js/database.js"></script>
+    <script src="../js/gpx-parser.js"></script>
+    <script src="../js/gpx-normalizer.js"></script>
+    <script src="../js/file-manager.js"></script>
+
+    <script>
+        async function runTest() {
+            const output = $('#output');
+
+            try {
+                output.append('<h2>1. Initializing Database</h2>');
+                await Database.init();
+                output.append('<p style="color: green;">✓ Database initialized</p>');
+
+                output.append('<h2>2. Reading Test GPX File</h2>');
+                const response = await fetch('../tests/testdata/deutschlands_suedwesten_haupttour_1.gpx');
+                const gpxContent = await response.text();
+                output.append('<p style="color: green;">✓ GPX file loaded</p>');
+
+                output.append('<h2>3. Parsing GPX</h2>');
+                const originalGpxData = GPXParser.parse(gpxContent);
+                output.append(`<p>Original GPX has:</p>`);
+                output.append(`<ul>`);
+                output.append(`<li>Routes: ${originalGpxData.routes ? originalGpxData.routes.length : 0}</li>`);
+                output.append(`<li>Tracks: ${originalGpxData.tracks ? originalGpxData.tracks.length : 0}</li>`);
+                output.append(`<li>Waypoints: ${originalGpxData.waypoints ? originalGpxData.waypoints.length : 0}</li>`);
+                output.append(`</ul>`);
+
+                if (originalGpxData.routes && originalGpxData.routes.length > 0) {
+                    const route = originalGpxData.routes[0];
+                    output.append(`<p>First route: "${route.name}" with ${route.points.length} points</p>`);
+                }
+
+                output.append('<h2>4. Normalizing GPX</h2>');
+                const normalizedContent = GPXNormalizer.normalize(originalGpxData);
+                output.append('<p style="color: green;">✓ GPX normalized</p>');
+
+                output.append('<h2>5. Parsing Normalized GPX</h2>');
+                const normalizedGpxData = GPXParser.parse(normalizedContent);
+                output.append(`<p>Normalized GPX has:</p>`);
+                output.append(`<ul>`);
+                output.append(`<li>Routes: ${normalizedGpxData.routes ? normalizedGpxData.routes.length : 0}</li>`);
+                output.append(`<li>Tracks: ${normalizedGpxData.tracks ? normalizedGpxData.tracks.length : 0}</li>`);
+                output.append(`<li>Waypoints: ${normalizedGpxData.waypoints ? normalizedGpxData.waypoints.length : 0}</li>`);
+                output.append(`</ul>`);
+
+                if (normalizedGpxData.routes && normalizedGpxData.routes.length > 0) {
+                    const route = normalizedGpxData.routes[0];
+                    output.append(`<p>First route: "${route.name}" with ${route.points.length} points</p>`);
+                }
+
+                if (normalizedGpxData.tracks && normalizedGpxData.tracks.length > 0) {
+                    const track = normalizedGpxData.tracks[0];
+                    output.append(`<p>First track: "${track.name}" with ${track.segments[0].points.length} points</p>`);
+                }
+
+                // Check if routes were preserved
+                if (originalGpxData.routes && normalizedGpxData.routes) {
+                    if (originalGpxData.routes.length === normalizedGpxData.routes.length) {
+                        output.append('<p style="color: green;">✓ Routes were preserved!</p>');
+                    } else {
+                        output.append('<p style="color: red;">✗ Routes were NOT preserved! Original: ' + originalGpxData.routes.length + ', Normalized: ' + normalizedGpxData.routes.length + '</p>');
+                    }
+                }
+
+                // Check if tracks were created from routes
+                if (originalGpxData.routes && originalGpxData.routes.length > 0 && (!originalGpxData.tracks || originalGpxData.tracks.length === 0)) {
+                    if (normalizedGpxData.tracks && normalizedGpxData.tracks.length === originalGpxData.routes.length) {
+                        output.append('<p style="color: green;">✓ Tracks were created from routes!</p>');
+                    } else {
+                        output.append('<p style="color: red;">✗ Tracks were NOT created correctly!</p>');
+                    }
+                }
+
+                output.append('<h2>6. Simulating Upload</h2>');
+                const timestamp = Date.now();
+                const lengthKm = GPXNormalizer.calculateLength(originalGpxData);
+                const waypointCount = normalizedGpxData.waypoints ? normalizedGpxData.waypoints.length : 0;
+                const ridingTimeHours = GPXNormalizer.calculateRidingTime(originalGpxData);
+
+                await Database.execute(
+                    `INSERT INTO gpx_files (name, folder_id, content, length_km, waypoint_count, riding_time_hours, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                    ['Test Route', null, normalizedContent, lengthKm, waypointCount, ridingTimeHours, timestamp]
+                );
+
+                const gpxId = Database.getLastInsertId();
+                output.append(`<p style="color: green;">✓ GPX file created with ID: ${gpxId}</p>`);
+
+                output.append('<h2>7. Storing Routes</h2>');
+                if (originalGpxData.routes) {
+                    for (let i = 0; i < originalGpxData.routes.length; i++) {
+                        const route = originalGpxData.routes[i];
+                        const routeLength = calculateRouteLength(route.points);
+                        const routeTime = routeLength / 50;
+                        await Database.execute(
+                            'INSERT INTO routes (gpx_file_id, index_in_gpx, name, length_km, riding_time_hours) VALUES (?, ?, ?, ?, ?)',
+                            [gpxId, i, route.name || 'Unnamed Route', routeLength, routeTime]
+                        );
+                    }
+                    output.append(`<p style="color: green;">✓ Stored ${originalGpxData.routes.length} routes</p>`);
+                }
+
+                output.append('<h2>8. Storing Tracks</h2>');
+                if (normalizedGpxData.tracks) {
+                    for (let i = 0; i < normalizedGpxData.tracks.length; i++) {
+                        const track = normalizedGpxData.tracks[i];
+                        let trackLength = 0;
+                        track.segments.forEach(segment => {
+                            trackLength += calculateRouteLength(segment.points);
+                        });
+                        const trackTime = trackLength / 50;
+                        await Database.execute(
+                            'INSERT INTO tracks (gpx_file_id, index_in_gpx, name, length_km, riding_time_hours) VALUES (?, ?, ?, ?, ?)',
+                            [gpxId, i, track.name || 'Unnamed Track', trackLength, trackTime]
+                        );
+                    }
+                    output.append(`<p style="color: green;">✓ Stored ${normalizedGpxData.tracks.length} tracks</p>`);
+                }
+
+                output.append('<h2>9. Storing Waypoints</h2>');
+                if (normalizedGpxData.waypoints) {
+                    for (const waypoint of normalizedGpxData.waypoints) {
+                        await Database.execute(
+                            'INSERT INTO waypoints (gpx_file_id, name, lat, lon) VALUES (?, ?, ?, ?)',
+                            [gpxId, waypoint.name || 'Unnamed Waypoint', waypoint.lat, waypoint.lon]
+                        );
+                    }
+                    output.append(`<p style="color: green;">✓ Stored ${normalizedGpxData.waypoints.length} waypoints</p>`);
+                }
+
+                output.append('<h2>10. Retrieving GPX Contents</h2>');
+                const routes = Database.query('SELECT * FROM routes WHERE gpx_file_id = ?', [gpxId]);
+                const tracks = Database.query('SELECT * FROM tracks WHERE gpx_file_id = ?', [gpxId]);
+                const waypoints = Database.query('SELECT * FROM waypoints WHERE gpx_file_id = ?', [gpxId]);
+
+                output.append(`<p>Database contains:</p>`);
+                output.append(`<ul>`);
+                output.append(`<li>Routes: ${routes.length}</li>`);
+                output.append(`<li>Tracks: ${tracks.length}</li>`);
+                output.append(`<li>Waypoints: ${waypoints.length}</li>`);
+                output.append(`</ul>`);
+
+                if (routes.length > 0) {
+                    output.append(`<p>First route in DB: "${routes[0].name}" at index ${routes[0].index_in_gpx}</p>`);
+                }
+                if (tracks.length > 0) {
+                    output.append(`<p>First track in DB: "${tracks[0].name}" at index ${tracks[0].index_in_gpx}</p>`);
+                }
+
+                output.append('<h2>11. Testing Route Display</h2>');
+                if (routes.length > 0) {
+                    const routeId = routes[0].id;
+                    const routeDbData = routes[0];
+
+                    // Get GPX file content
+                    const gpxFile = Database.query('SELECT content FROM gpx_files WHERE id = ?', [gpxId])[0];
+                    const gpxDataForDisplay = GPXParser.parse(gpxFile.content);
+
+                    output.append(`<p>Parsed GPX for display has ${gpxDataForDisplay.routes ? gpxDataForDisplay.routes.length : 0} routes</p>`);
+
+                    if (gpxDataForDisplay.routes && gpxDataForDisplay.routes.length > routeDbData.index_in_gpx) {
+                        const route = gpxDataForDisplay.routes[routeDbData.index_in_gpx];
+                        output.append(`<p style="color: green;">✓ SUCCESS! Retrieved route "${route.name}" with ${route.points.length} points</p>`);
+                    } else {
+                        output.append(`<p style="color: red;">✗ FAILED! Could not retrieve route at index ${routeDbData.index_in_gpx}</p>`);
+                    }
+                }
+
+                output.append('<h2>12. Testing Track Display</h2>');
+                if (tracks.length > 0) {
+                    const trackId = tracks[0].id;
+                    const trackDbData = tracks[0];
+
+                    // Get GPX file content
+                    const gpxFile = Database.query('SELECT content FROM gpx_files WHERE id = ?', [gpxId])[0];
+                    const gpxDataForDisplay = GPXParser.parse(gpxFile.content);
+
+                    output.append(`<p>Parsed GPX for display has ${gpxDataForDisplay.tracks ? gpxDataForDisplay.tracks.length : 0} tracks</p>`);
+
+                    if (gpxDataForDisplay.tracks && gpxDataForDisplay.tracks.length > trackDbData.index_in_gpx) {
+                        const track = gpxDataForDisplay.tracks[trackDbData.index_in_gpx];
+                        let totalPoints = 0;
+                        track.segments.forEach(seg => totalPoints += seg.points.length);
+                        output.append(`<p style="color: green;">✓ SUCCESS! Retrieved track "${track.name}" with ${totalPoints} points</p>`);
+                    } else {
+                        output.append(`<p style="color: red;">✗ FAILED! Could not retrieve track at index ${trackDbData.index_in_gpx}</p>`);
+                    }
+                }
+
+                output.append('<h2 style="color: green;">✓ All Tests Passed!</h2>');
+
+            } catch (error) {
+                output.append(`<p style="color: red;"><strong>ERROR:</strong> ${error.message}</p>`);
+                output.append(`<pre>${error.stack}</pre>`);
+            }
+        }
+
+        function calculateRouteLength(points) {
+            let length = 0;
+            for (let i = 1; i < points.length; i++) {
+                const p1 = points[i - 1];
+                const p2 = points[i];
+                length += GPXNormalizer.calculateDistance(p1.lat, p1.lon, p2.lat, p2.lon);
+            }
+            return length;
+        }
+
+        $(document).ready(function() {
+            runTest();
+        });
+    </script>
+</body>
+</html>
