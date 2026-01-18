@@ -142,6 +142,11 @@ const FileManager = (function() {
                 );
 
                 const gpxId = Database.getLastInsertId();
+                console.log('GPX file inserted with ID:', gpxId);
+
+                // Verify by querying
+                const verifyResult = Database.query('SELECT id, name FROM gpx_files WHERE name = ?', [fileName]);
+                console.log('Verification query result:', verifyResult);
 
                 // Store routes, tracks, waypoints from NORMALIZED data
                 // (The normalizer creates tracks from routes and waypoints from route points)

@@ -269,6 +269,7 @@ const Database = (function() {
      */
     function getLastInsertId() {
         const result = query('SELECT last_insert_rowid() as id');
+        console.log('getLastInsertId() returned:', result[0].id);
         return result[0].id;
     }
     
