@@ -1065,7 +1065,7 @@ const UIController = (function() {
             });
     }
 
-    function handleRenameClick() {
+    async function handleRenameClick() {
         const selectedItems = FileManager.getSelectedItems();
 
         if (selectedItems.length === 0) {
@@ -1101,7 +1101,7 @@ const UIController = (function() {
             return;
         }
 
-        const newName = prompt('Enter new name:', currentName);
+        const newName = await Modal.prompt('Enter new name:', currentName, 'Rename');
         if (!newName || newName === currentName) return;
 
         // Show save button for route/track/waypoint renames (in-memory changes)
@@ -1152,7 +1152,7 @@ const UIController = (function() {
         }
     }
 
-    function handleDeleteClick() {
+    async function handleDeleteClick() {
         const selectedItems = FileManager.getSelectedItems();
 
         if (selectedItems.length === 0) {
@@ -1164,7 +1164,8 @@ const UIController = (function() {
             ? 'Are you sure you want to delete this item?'
             : `Are you sure you want to delete ${selectedItems.length} items?`;
 
-        if (!confirm(confirmMsg)) return;
+        const confirmed = await Modal.confirm(confirmMsg, 'Delete Items');
+        if (!confirmed) return;
 
         // Check if we're deleting routes/tracks/waypoints (in-memory changes)
         const hasGpxContentItems = selectedItems.some(item =>
@@ -1197,10 +1198,10 @@ const UIController = (function() {
         });
     }
     
-    function handleNewFolderClick() {
-        const name = prompt('Enter folder name:');
+    async function handleNewFolderClick() {
+        const name = await Modal.prompt('Enter folder name:', '', 'New Folder');
         if (!name) return;
-        
+
         FileManager.createFolder(name, FileManager.getCurrentFolderId())
             .then(() => {
                 renderFileList();
@@ -1259,9 +1260,11 @@ const UIController = (function() {
     }
 
     async function handleDeleteDbClick() {
-        if (!confirm('Delete all data and reinitialize database? This cannot be undone!')) {
-            return;
-        }
+        const confirmed = await Modal.confirm(
+            'Delete all data and reinitialize database? This cannot be undone!',
+            'Delete Database'
+        );
+        if (!confirmed) return;
 
         showLoadingSpinner();
 
@@ -1963,7 +1966,7 @@ const UIController = (function() {
     async function handlePasteAsNewGpx(clipboard) {
         try {
             // Prompt for GPX name
-            const gpxName = prompt('Enter name for new GPX file:', 'Pasted Routes');
+            const gpxName = await Modal.prompt('Enter name for new GPX file:', 'Pasted Routes', 'New GPX File');
             if (!gpxName) {
                 return; // User cancelled
             }

@@ -11,8 +11,9 @@
      */
     async function init() {
         try {
-            // Initialize toast notifications first
+            // Initialize toast notifications and modals first
             Toast.init();
+            Modal.init();
 
             // Show loading
             UIController.showLoadingSpinner();

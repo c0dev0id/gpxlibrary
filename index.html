@@ -274,6 +274,7 @@
 
     <!-- Application Modules -->
     <script src="js/toast.js?v=12"></script>
+    <script src="js/modal.js?v=12"></script>
     <script src="js/database.js?v=12"></script>
     <script src="js/gpx-parser.js?v=12"></script>
     <script src="js/gpx-normalizer.js?v=12"></script>
@@ -300,8 +301,7 @@
             document.getElementById('keyboardShortcutsBtn').addEventListener('click', function(e) {
                 e.preventDefault();
                 const shortcuts = `
-                    <h5>Keyboard Shortcuts</h5>
-                    <table class="table table-sm">
+                    <table>
                         <tr><td><kbd>↑</kbd> <kbd>↓</kbd></td><td>Navigate list</td></tr>
                         <tr><td><kbd>Enter</kbd></td><td>Open folder/file</td></tr>
                         <tr><td><kbd>Backspace</kbd></td><td>Go up one level</td></tr>
@@ -312,7 +312,7 @@
                         <tr><td><kbd>Ctrl+Click</kbd></td><td>Multi-select</td></tr>
                     </table>
                 `;
-                alert(shortcuts.replace(/<[^>]*>/g, '\n')); // Simple alert for now
+                Modal.show('Keyboard Shortcuts', shortcuts);
             });
         });
     </script>
