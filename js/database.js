@@ -82,6 +82,7 @@ const Database = (function() {
                 name TEXT,
                 length_km REAL DEFAULT 0,
                 riding_time_hours REAL DEFAULT 0,
+                routing_strategy TEXT DEFAULT 'road',
                 FOREIGN KEY (gpx_file_id) REFERENCES gpx_files(id) ON DELETE CASCADE
             )
         `);
@@ -104,6 +105,7 @@ const Database = (function() {
             CREATE TABLE waypoints (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 gpx_file_id INTEGER NOT NULL,
+                index_in_gpx INTEGER NOT NULL,
                 name TEXT,
                 lat REAL NOT NULL,
                 lon REAL NOT NULL,
