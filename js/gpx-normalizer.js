@@ -62,7 +62,7 @@ const GPXNormalizer = (function() {
             const wptElement = doc.createElement('wpt');
             wptElement.setAttribute('lat', wpt.lat.toFixed(6));
             wptElement.setAttribute('lon', wpt.lon.toFixed(6));
-            
+
             if (wpt.name) addElement(doc, wptElement, 'name', wpt.name);
             if (wpt.desc) addElement(doc, wptElement, 'desc', wpt.desc);
             if (wpt.ele !== null && wpt.ele !== undefined) {
@@ -71,13 +71,38 @@ const GPXNormalizer = (function() {
             if (wpt.time) addElement(doc, wptElement, 'time', wpt.time);
             if (wpt.sym) addElement(doc, wptElement, 'sym', wpt.sym);
             if (wpt.type) addElement(doc, wptElement, 'type', wpt.type);
-            
+
             gpxElement.appendChild(wptElement);
         });
-        
-        // Convert routes to tracks if no tracks exist
+
+        // Add routes to GPX (preserve original routes)
+        if (gpxData.routes && gpxData.routes.length > 0) {
+            gpxData.routes.forEach(route => {
+                const rteElement = doc.createElement('rte');
+
+                if (route.name) addElement(doc, rteElement, 'name', route.name);
+                if (route.desc) addElement(doc, rteElement, 'desc', route.desc);
+
+                route.points.forEach(pt => {
+                    const rteptElement = doc.createElement('rtept');
+                    rteptElement.setAttribute('lat', pt.lat.toFixed(6));
+                    rteptElement.setAttribute('lon', pt.lon.toFixed(6));
+
+                    if (pt.name) addElement(doc, rteptElement, 'name', pt.name);
+                    if (pt.ele !== null && pt.ele !== undefined) {
+                        addElement(doc, rteptElement, 'ele', pt.ele.toFixed(1));
+                    }
+
+                    rteElement.appendChild(rteptElement);
+                });
+
+                gpxElement.appendChild(rteElement);
+            });
+        }
+
+        // Convert routes to tracks if no tracks exist (for backward compatibility)
         const tracks = [...(gpxData.tracks || [])];
-        
+
         if (tracks.length === 0 && gpxData.routes && gpxData.routes.length > 0) {
             // Convert routes to tracks
             gpxData.routes.forEach(route => {
@@ -85,7 +110,7 @@ const GPXNormalizer = (function() {
                 tracks.push(track);
             });
         }
-        
+
         // Add tracks to GPX (without extensions)
         tracks.forEach(trk => {
             const trkElement = doc.createElement('trk');

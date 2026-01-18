@@ -176,19 +176,44 @@ const MapPreview = (function() {
         clearLayers();
 
         const gpxFile = FileManager.getGpxFile(gpxId);
-        if (!gpxFile) return;
+        if (!gpxFile) {
+            console.error('displayRoute: GPX file not found', gpxId);
+            return;
+        }
 
         const gpxData = GPXParser.parse(gpxFile.content);
 
-        // Find the specific route
+        // Find the specific route in database
         const routes = Database.query('SELECT * FROM routes WHERE id = ?', [routeId]);
-        if (routes.length === 0) return;
+        if (routes.length === 0) {
+            console.error('displayRoute: Route not found in database', routeId);
+            return;
+        }
 
         const routeDbData = routes[0];
 
+        // Check if routes array exists and has elements
+        if (!gpxData.routes || !Array.isArray(gpxData.routes)) {
+            console.error('displayRoute: No routes in GPX data', gpxData);
+            return;
+        }
+
+        if (routeDbData.index_in_gpx >= gpxData.routes.length) {
+            console.error('displayRoute: Route index out of bounds', routeDbData.index_in_gpx, 'of', gpxData.routes.length);
+            return;
+        }
+
         // Find route in parsed GPX data by index
         const route = gpxData.routes[routeDbData.index_in_gpx];
-        if (!route || route.points.length === 0) return;
+        if (!route) {
+            console.error('displayRoute: Route is null/undefined', routeDbData.index_in_gpx);
+            return;
+        }
+
+        if (!route.points || route.points.length === 0) {
+            console.error('displayRoute: Route has no points', route);
+            return;
+        }
 
         const latlngs = route.points.map(pt => [pt.lat, pt.lon]);
 
@@ -211,24 +236,49 @@ const MapPreview = (function() {
         clearLayers();
 
         const gpxFile = FileManager.getGpxFile(gpxId);
-        if (!gpxFile) return;
+        if (!gpxFile) {
+            console.error('displayTrack: GPX file not found', gpxId);
+            return;
+        }
 
         const gpxData = GPXParser.parse(gpxFile.content);
 
-        // Find the specific track
+        // Find the specific track in database
         const tracks = Database.query('SELECT * FROM tracks WHERE id = ?', [trackId]);
-        if (tracks.length === 0) return;
+        if (tracks.length === 0) {
+            console.error('displayTrack: Track not found in database', trackId);
+            return;
+        }
 
         const trackDbData = tracks[0];
 
+        // Check if tracks array exists and has elements
+        if (!gpxData.tracks || !Array.isArray(gpxData.tracks)) {
+            console.error('displayTrack: No tracks in GPX data', gpxData);
+            return;
+        }
+
+        if (trackDbData.index_in_gpx >= gpxData.tracks.length) {
+            console.error('displayTrack: Track index out of bounds', trackDbData.index_in_gpx, 'of', gpxData.tracks.length);
+            return;
+        }
+
         // Find track in parsed GPX data by index
         const track = gpxData.tracks[trackDbData.index_in_gpx];
-        if (!track) return;
+        if (!track) {
+            console.error('displayTrack: Track is null/undefined', trackDbData.index_in_gpx);
+            return;
+        }
+
+        if (!track.segments || track.segments.length === 0) {
+            console.error('displayTrack: Track has no segments', track);
+            return;
+        }
 
         const allPoints = [];
 
         track.segments.forEach(segment => {
-            if (segment.points.length > 0) {
+            if (segment.points && segment.points.length > 0) {
                 const latlngs = segment.points.map(pt => {
                     allPoints.push([pt.lat, pt.lon]);
                     return [pt.lat, pt.lon];
@@ -248,6 +298,8 @@ const MapPreview = (function() {
         if (allPoints.length > 0) {
             const bounds = L.latLngBounds(allPoints);
             map.fitBounds(bounds, { padding: [50, 50] });
+        } else {
+            console.error('displayTrack: No points found in track segments');
         }
     }
     
