@@ -1,0 +1,296 @@
+/**
+ * Database Module
+ * Handles SQLite database operations with IndexedDB persistence
+ */
+
+const Database = (function() {
+    'use strict';
+    
+    let db = null;
+    let SQL = null;
+    const DB_NAME = 'gpx_library_db';
+    const DB_VERSION = 1;
+    const STORE_NAME = 'sqliteStore';
+    
+    /**
+     * Initialize SQL.js and load database from IndexedDB or create new
+     */
+    async function init() {
+        try {
+            // Initialize SQL.js
+            SQL = await initSqlJs({
+                locateFile: file => `https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/${file}`
+            });
+            
+            // Try to load existing database from IndexedDB
+            const savedDb = await loadFromIndexedDB();
+            
+            if (savedDb) {
+                db = new SQL.Database(savedDb);
+                console.log('Database loaded from IndexedDB');
+            } else {
+                db = new SQL.Database();
+                await createSchema();
+                console.log('New database created');
+            }
+            
+            return true;
+        } catch (error) {
+            console.error('Database initialization failed:', error);
+            throw error;
+        }
+    }
+    
+    /**
+     * Create database schema
+     */
+    async function createSchema() {
+        // Folders table
+        db.run(`
+            CREATE TABLE folders (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                parent_id INTEGER,
+                created_at INTEGER NOT NULL,
+                FOREIGN KEY (parent_id) REFERENCES folders(id) ON DELETE CASCADE
+            )
+        `);
+        
+        // GPX files table
+        db.run(`
+            CREATE TABLE gpx_files (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                folder_id INTEGER,
+                content TEXT NOT NULL,
+                length_km REAL DEFAULT 0,
+                waypoint_count INTEGER DEFAULT 0,
+                riding_time_hours REAL DEFAULT 0,
+                created_at INTEGER NOT NULL,
+                FOREIGN KEY (folder_id) REFERENCES folders(id) ON DELETE CASCADE
+            )
+        `);
+        
+        // Routes table (for within GPX files)
+        db.run(`
+            CREATE TABLE routes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                gpx_file_id INTEGER NOT NULL,
+                name TEXT,
+                length_km REAL DEFAULT 0,
+                riding_time_hours REAL DEFAULT 0,
+                FOREIGN KEY (gpx_file_id) REFERENCES gpx_files(id) ON DELETE CASCADE
+            )
+        `);
+        
+        // Tracks table (for within GPX files)
+        db.run(`
+            CREATE TABLE tracks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                gpx_file_id INTEGER NOT NULL,
+                name TEXT,
+                length_km REAL DEFAULT 0,
+                riding_time_hours REAL DEFAULT 0,
+                FOREIGN KEY (gpx_file_id) REFERENCES gpx_files(id) ON DELETE CASCADE
+            )
+        `);
+        
+        // Waypoints table (for within GPX files)
+        db.run(`
+            CREATE TABLE waypoints (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                gpx_file_id INTEGER NOT NULL,
+                name TEXT,
+                lat REAL NOT NULL,
+                lon REAL NOT NULL,
+                FOREIGN KEY (gpx_file_id) REFERENCES gpx_files(id) ON DELETE CASCADE
+            )
+        `);
+        
+        // Create indexes
+        db.run('CREATE INDEX idx_folders_parent ON folders(parent_id)');
+        db.run('CREATE INDEX idx_gpx_folder ON gpx_files(folder_id)');
+        db.run('CREATE INDEX idx_routes_gpx ON routes(gpx_file_id)');
+        db.run('CREATE INDEX idx_tracks_gpx ON tracks(gpx_file_id)');
+        db.run('CREATE INDEX idx_waypoints_gpx ON waypoints(gpx_file_id)');
+        
+        await saveToIndexedDB();
+    }
+    
+    /**
+     * Save database to IndexedDB
+     */
+    async function saveToIndexedDB() {
+        return new Promise((resolve, reject) => {
+            const data = db.export();
+            const request = indexedDB.open(DB_NAME, DB_VERSION);
+            
+            request.onerror = () => reject(request.error);
+            
+            request.onsuccess = (event) => {
+                const indexedDb = event.target.result;
+                const transaction = indexedDb.transaction([STORE_NAME], 'readwrite');
+                const store = transaction.objectStore(STORE_NAME);
+                
+                store.put(data, 'database');
+                
+                transaction.oncomplete = () => {
+                    indexedDb.close();
+                    resolve();
+                };
+                
+                transaction.onerror = () => reject(transaction.error);
+            };
+            
+            request.onupgradeneeded = (event) => {
+                const indexedDb = event.target.result;
+                if (!indexedDb.objectStoreNames.contains(STORE_NAME)) {
+                    indexedDb.createObjectStore(STORE_NAME);
+                }
+            };
+        });
+    }
+    
+    /**
+     * Load database from IndexedDB
+     */
+    async function loadFromIndexedDB() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(DB_NAME, DB_VERSION);
+            
+            request.onerror = () => reject(request.error);
+            
+            request.onsuccess = (event) => {
+                const indexedDb = event.target.result;
+                
+                if (!indexedDb.objectStoreNames.contains(STORE_NAME)) {
+                    indexedDb.close();
+                    resolve(null);
+                    return;
+                }
+                
+                const transaction = indexedDb.transaction([STORE_NAME], 'readonly');
+                const store = transaction.objectStore(STORE_NAME);
+                const getRequest = store.get('database');
+                
+                getRequest.onsuccess = () => {
+                    indexedDb.close();
+                    resolve(getRequest.result || null);
+                };
+                
+                getRequest.onerror = () => {
+                    indexedDb.close();
+                    reject(getRequest.error);
+                };
+            };
+            
+            request.onupgradeneeded = (event) => {
+                const indexedDb = event.target.result;
+                if (!indexedDb.objectStoreNames.contains(STORE_NAME)) {
+                    indexedDb.createObjectStore(STORE_NAME);
+                }
+            };
+        });
+    }
+    
+    /**
+     * Execute a query and return results
+     */
+    function query(sql, params = []) {
+        try {
+            const stmt = db.prepare(sql);
+            stmt.bind(params);
+            
+            const results = [];
+            while (stmt.step()) {
+                results.push(stmt.getAsObject());
+            }
+            stmt.free();
+            
+            return results;
+        } catch (error) {
+            console.error('Query error:', error, sql, params);
+            throw error;
+        }
+    }
+    
+    /**
+     * Execute a statement (INSERT, UPDATE, DELETE)
+     */
+    async function execute(sql, params = []) {
+        try {
+            db.run(sql, params);
+            await saveToIndexedDB();
+            return true;
+        } catch (error) {
+            console.error('Execute error:', error, sql, params);
+            throw error;
+        }
+    }
+    
+    /**
+     * Get last insert ID
+     */
+    function getLastInsertId() {
+        const result = query('SELECT last_insert_rowid() as id');
+        return result[0].id;
+    }
+    
+    /**
+     * Export database as Uint8Array
+     */
+    function exportDatabase() {
+        return db.export();
+    }
+    
+    /**
+     * Import database from Uint8Array
+     */
+    async function importDatabase(data) {
+        try {
+            db.close();
+            db = new SQL.Database(data);
+            await saveToIndexedDB();
+            return true;
+        } catch (error) {
+            console.error('Import error:', error);
+            throw error;
+        }
+    }
+    
+    /**
+     * Begin transaction
+     */
+    function beginTransaction() {
+        db.run('BEGIN TRANSACTION');
+    }
+    
+    /**
+     * Commit transaction
+     */
+    async function commit() {
+        db.run('COMMIT');
+        await saveToIndexedDB();
+    }
+    
+    /**
+     * Rollback transaction
+     */
+    function rollback() {
+        db.run('ROLLBACK');
+    }
+    
+    // Public API
+    return {
+        init,
+        query,
+        execute,
+        getLastInsertId,
+        exportDatabase,
+        importDatabase,
+        saveToIndexedDB,
+        beginTransaction,
+        commit,
+        rollback
+    };
+})();
