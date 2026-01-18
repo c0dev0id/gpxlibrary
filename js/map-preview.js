@@ -172,7 +172,7 @@ const MapPreview = (function() {
     /**
      * Display specific route on map
      */
-    function displayRoute(gpxId, routeId, keepExisting = false) {
+    async function displayRoute(gpxId, routeId, keepExisting = false) {
         if (!keepExisting) {
             clearLayers();
         }
@@ -217,20 +217,55 @@ const MapPreview = (function() {
             return;
         }
 
-        const latlngs = route.points.map(pt => [pt.lat, pt.lon]);
-
         const colorIndex = keepExisting ? currentLayers.length % COLORS.length : 0;
-        const polyline = L.polyline(latlngs, {
-            color: COLORS[colorIndex],
-            weight: 6,
-            opacity: 0.5
-        }).addTo(map);
 
-        currentLayers.push(polyline);
+        // Try to calculate routed path using routing service
+        try {
+            const waypoints = route.points.map(pt => ({ lat: pt.lat, lon: pt.lon }));
+            const routedPath = await Routing.calculateRoute(waypoints);
 
-        // Fit map to route (unless keeping existing layers)
-        if (!keepExisting) {
-            map.fitBounds(polyline.getBounds(), { padding: [50, 50] });
+            // Display routed path
+            const polyline = L.polyline(routedPath.coordinates, {
+                color: COLORS[colorIndex],
+                weight: 6,
+                opacity: 0.5
+            }).addTo(map);
+
+            // Add popup with route info
+            if (route.name) {
+                const distanceKm = (routedPath.distance / 1000).toFixed(1);
+                const timeHours = (routedPath.time / 3600).toFixed(1);
+                polyline.bindPopup(`<strong>Route:</strong> ${route.name}<br><strong>Distance:</strong> ${distanceKm} km<br><strong>Time:</strong> ${timeHours} h`);
+            }
+
+            currentLayers.push(polyline);
+
+            // Fit map to route (unless keeping existing layers)
+            if (!keepExisting) {
+                map.fitBounds(polyline.getBounds(), { padding: [50, 50] });
+            }
+        } catch (error) {
+            console.error('Routing failed, falling back to straight lines:', error);
+
+            // Fallback: draw straight lines between waypoints
+            const latlngs = route.points.map(pt => [pt.lat, pt.lon]);
+            const polyline = L.polyline(latlngs, {
+                color: COLORS[colorIndex],
+                weight: 6,
+                opacity: 0.5,
+                dashArray: '10, 5' // Dashed to indicate it's not a real route
+            }).addTo(map);
+
+            if (route.name) {
+                polyline.bindPopup(`<strong>Route:</strong> ${route.name}<br><em>(Straight line - routing failed)</em>`);
+            }
+
+            currentLayers.push(polyline);
+
+            // Fit map to route (unless keeping existing layers)
+            if (!keepExisting) {
+                map.fitBounds(polyline.getBounds(), { padding: [50, 50] });
+            }
         }
     }
     

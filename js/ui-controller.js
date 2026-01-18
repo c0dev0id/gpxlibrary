@@ -48,6 +48,9 @@ const UIController = (function() {
         $('#filterWaypointsMin, #filterWaypointsMax').on('input', handleFilterChange);
         $('#filterTimeMin, #filterTimeMax').on('input', handleFilterChange);
 
+        // Routing strategy
+        $('#routingStrategy').on('change', handleRoutingStrategyChange);
+
         // Path navigation
         $('#currentPath').on('click', handlePathClick);
     }
@@ -722,10 +725,25 @@ const UIController = (function() {
         filters.waypointsMax = parseInt($('#filterWaypointsMax').val()) || null;
         filters.timeMin = parseFloat($('#filterTimeMin').val()) || null;
         filters.timeMax = parseFloat($('#filterTimeMax').val()) || null;
-        
+
         renderFileList();
     }
-    
+
+    function handleRoutingStrategyChange() {
+        const strategy = $('#routingStrategy').val();
+        Routing.setStrategy(strategy);
+
+        // Refresh the currently displayed route if there is one
+        const selectedItems = FileManager.getSelectedItems();
+        if (selectedItems.length > 0) {
+            const item = selectedItems[0];
+            if (item.type === 'route') {
+                const currentGpxId = FileManager.getCurrentGpxId();
+                MapPreview.displayRoute(currentGpxId, item.id);
+            }
+        }
+    }
+
     function handlePathClick() {
         // Navigate back to root
         FileManager.setCurrentFolderId(null);

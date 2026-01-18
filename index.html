@@ -10,7 +10,10 @@
     
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    
+
+    <!-- Leaflet Routing Machine CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+
     <!-- Custom CSS -->
     <link rel="stylesheet" href="css/style.css">
 </head>
@@ -59,7 +62,19 @@
                     <div class="mb-2">
                         <strong>Path:</strong> <span id="currentPath">/</span>
                     </div>
-                    
+
+                    <!-- Routing Strategy -->
+                    <div class="mb-3">
+                        <label for="routingStrategy" class="form-label"><strong>Routing Strategy:</strong></label>
+                        <select class="form-select form-select-sm" id="routingStrategy">
+                            <option value="road" selected>Road (Fast)</option>
+                            <option value="road-no-motorway">Road - Avoid Motorway</option>
+                            <option value="curvy">Curvy (Scenic)</option>
+                            <option value="prefer-unpaved">Prefer Unpaved</option>
+                        </select>
+                        <small class="text-muted">Strategy used for route display and calculations</small>
+                    </div>
+
                     <!-- Filter -->
                     <div class="mb-2">
                         <input type="text" class="form-control form-control-sm mb-2" id="filterName" placeholder="Filter by name">
@@ -128,7 +143,10 @@
     
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    
+
+    <!-- Leaflet Routing Machine JS -->
+    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+
     <!-- SQL.js -->
     <script src="https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/sql-wasm.js"></script>
     
@@ -136,12 +154,13 @@
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
     
     <!-- Application JS -->
-    <script src="js/database.js?v=7"></script>
-    <script src="js/gpx-parser.js?v=7"></script>
-    <script src="js/gpx-normalizer.js?v=7"></script>
-    <script src="js/file-manager.js?v=7"></script>
-    <script src="js/map-preview.js?v=7"></script>
-    <script src="js/ui-controller.js?v=7"></script>
-    <script src="js/app.js?v=7"></script>
+    <script src="js/database.js?v=8"></script>
+    <script src="js/gpx-parser.js?v=8"></script>
+    <script src="js/gpx-normalizer.js?v=8"></script>
+    <script src="js/routing.js?v=8"></script>
+    <script src="js/file-manager.js?v=8"></script>
+    <script src="js/map-preview.js?v=8"></script>
+    <script src="js/ui-controller.js?v=8"></script>
+    <script src="js/app.js?v=8"></script>
 </body>
 </html>
