@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Test Paessetraining File</title>
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/sql-wasm.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 1200px; margin: 0 auto; }
+        .success { color: green; font-weight: bold; }
+        .error { color: red; font-weight: bold; }
+        .warning { color: orange; font-weight: bold; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; background: #f9f9f9; }
+        h2 { color: #333; border-bottom: 2px solid #666; padding-bottom: 5px; }
+        h3 { color: #555; }
+        ul { line-height: 1.8; }
+        .highlight { background: yellow; padding: 2px 4px; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Test: Paessetraining Vogesen 2026 (Anfahrt).gpx</h1>
+    <button onclick="runTest()">Run Test</button>
+    <div id="output"></div>
+
+    <script src="js/database.js"></script>
+    <script src="js/gpx-parser.js"></script>
+    <script src="js/gpx-normalizer.js"></script>
+
+    <script>
+        async function runTest() {
+            const output = $('#output');
+            output.html('');
+
+            try {
+                // Initialize database
+                output.append('<div class="section"><h2>1. Initializing Database</h2>');
+                await Database.init();
+                output.append('<p class="success">✓ Database initialized</p></div>');
+
+                // Load test file
+                output.append('<div class="section"><h2>2. Loading Test File</h2>');
+                const response = await fetch('tests/testdata/Paessetraining Vogesen 2026 (Anfahrt).gpx');
+                const content = await response.text();
+                output.append(`<p class="success">✓ File loaded (${content.length} bytes)</p></div>`);
+
+                // Parse original
+                output.append('<div class="section"><h2>3. Parsing Original GPX (1.1)</h2>');
+                const originalGpxData = GPXParser.parse(content);
+                output.append(`<p>Version: <strong>${originalGpxData.version}</strong></p>`);
+                output.append(`<p>Routes: <strong>${originalGpxData.routes ? originalGpxData.routes.length : 0}</strong></p>`);
+                output.append(`<p>Tracks: <strong>${originalGpxData.tracks ? originalGpxData.tracks.length : 0}</strong></p>`);
+                output.append(`<p>Waypoints: <strong>${originalGpxData.waypoints ? originalGpxData.waypoints.length : 0}</strong></p>`);
+
+                if (originalGpxData.routes) {
+                    output.append('<h3>Routes Found:</h3><ul>');
+                    originalGpxData.routes.forEach((route, i) => {
+                        output.append(`<li>[${i}] <strong>${route.name}</strong> - ${route.points.length} points</li>`);
+                    });
+                    output.append('</ul>');
+                }
+
+                if (originalGpxData.waypoints) {
+                    output.append('<h3>Waypoints Found:</h3><ul>');
+                    originalGpxData.waypoints.forEach((wp, i) => {
+                        output.append(`<li>[${i}] <strong>${wp.name}</strong></li>`);
+                    });
+                    output.append('</ul>');
+                }
+                output.append('</div>');
+
+                // Normalize
+                output.append('<div class="section"><h2>4. Normalizing to GPX 1.0</h2>');
+                const normalizedContent = GPXNormalizer.normalize(originalGpxData);
+                output.append(`<p class="success">✓ Normalized (${normalizedContent.length} bytes)</p>`);
+
+                // Parse normalized
+                const normalizedGpxData = GPXParser.parse(normalizedContent);
+                output.append(`<p>Routes: <strong>${normalizedGpxData.routes ? normalizedGpxData.routes.length : 0}</strong></p>`);
+                output.append(`<p>Tracks: <strong class="highlight">${normalizedGpxData.tracks ? normalizedGpxData.tracks.length : 0}</strong> (should be 6, generated from routes)</p>`);
+                output.append(`<p>Waypoints: <strong>${normalizedGpxData.waypoints ? normalizedGpxData.waypoints.length : 0}</strong></p>`);
+
+                if (normalizedGpxData.routes) {
+                    output.append('<h3>Routes in Normalized GPX:</h3><ul>');
+                    normalizedGpxData.routes.forEach((route, i) => {
+                        output.append(`<li>[${i}] <strong>${route.name}</strong> - ${route.points.length} points</li>`);
+                    });
+                    output.append('</ul>');
+                }
+
+                if (normalizedGpxData.tracks) {
+                    output.append('<h3>Tracks in Normalized GPX:</h3><ul>');
+                    normalizedGpxData.tracks.forEach((track, i) => {
+                        const totalPoints = track.segments.reduce((sum, seg) => sum + seg.points.length, 0);
+                        output.append(`<li>[${i}] <strong>${track.name}</strong> - ${totalPoints} points</li>`);
+                    });
+                    output.append('</ul>');
+                } else {
+                    output.append('<p class="error">✗ NO TRACKS GENERATED!</p>');
+                }
+
+                if (normalizedGpxData.waypoints) {
+                    output.append('<h3>Waypoints in Normalized GPX:</h3><ul>');
+                    normalizedGpxData.waypoints.forEach((wp, i) => {
+                        output.append(`<li>[${i}] <strong>${wp.name}</strong></li>`);
+                    });
+                    output.append('</ul>');
+                }
+                output.append('</div>');
+
+                // Store in database
+                output.append('<div class="section"><h2>5. Storing in Database</h2>');
+                const timestamp = Date.now();
+                const lengthKm = GPXNormalizer.calculateLength(normalizedGpxData);
+                const waypointCount = normalizedGpxData.waypoints ? normalizedGpxData.waypoints.length : 0;
+                const ridingTimeHours = GPXNormalizer.calculateRidingTime(normalizedGpxData);
+
+                await Database.execute(
+                    `INSERT INTO gpx_files (name, folder_id, content, length_km, waypoint_count, riding_time_hours, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                    ['Paessetraining Vogesen 2026 (Anfahrt)', null, normalizedContent, lengthKm, waypointCount, ridingTimeHours, timestamp]
+                );
+
+                const gpxId = Database.getLastInsertId();
+                output.append(`<p class="success">✓ GPX file stored with ID: ${gpxId}</p>`);
+
+                // Store routes
+                if (normalizedGpxData.routes) {
+                    for (let i = 0; i < normalizedGpxData.routes.length; i++) {
+                        const route = normalizedGpxData.routes[i];
+                        const routeLength = calculateRouteLength(route.points);
+                        const routeTime = routeLength / 50;
+                        await Database.execute(
+                            'INSERT INTO routes (gpx_file_id, index_in_gpx, name, length_km, riding_time_hours) VALUES (?, ?, ?, ?, ?)',
+                            [gpxId, i, route.name || 'Unnamed Route', routeLength, routeTime]
+                        );
+                    }
+                    output.append(`<p class="success">✓ Stored ${normalizedGpxData.routes.length} routes</p>`);
+                }
+
+                // Store tracks
+                if (normalizedGpxData.tracks) {
+                    for (let i = 0; i < normalizedGpxData.tracks.length; i++) {
+                        const track = normalizedGpxData.tracks[i];
+                        let trackLength = 0;
+                        track.segments.forEach(segment => {
+                            trackLength += calculateRouteLength(segment.points);
+                        });
+                        const trackTime = trackLength / 50;
+                        await Database.execute(
+                            'INSERT INTO tracks (gpx_file_id, index_in_gpx, name, length_km, riding_time_hours) VALUES (?, ?, ?, ?, ?)',
+                            [gpxId, i, track.name || 'Unnamed Track', trackLength, trackTime]
+                        );
+                    }
+                    output.append(`<p class="success">✓ Stored ${normalizedGpxData.tracks.length} tracks</p>`);
+                } else {
+                    output.append(`<p class="error">✗ No tracks to store!</p>`);
+                }
+
+                // Store waypoints
+                if (normalizedGpxData.waypoints) {
+                    for (const waypoint of normalizedGpxData.waypoints) {
+                        await Database.execute(
+                            'INSERT INTO waypoints (gpx_file_id, name, lat, lon) VALUES (?, ?, ?, ?)',
+                            [gpxId, waypoint.name || 'Waypoint', waypoint.lat, waypoint.lon]
+                        );
+                    }
+                    output.append(`<p class="success">✓ Stored ${normalizedGpxData.waypoints.length} waypoints</p>`);
+                }
+                output.append('</div>');
+
+                // Retrieve what would be displayed
+                output.append('<div class="section"><h2>6. What Would Be Displayed in UI</h2>');
+                const routes = Database.query('SELECT * FROM routes WHERE gpx_file_id = ? ORDER BY id', [gpxId]);
+                const tracks = Database.query('SELECT * FROM tracks WHERE gpx_file_id = ? ORDER BY id', [gpxId]);
+                const waypoints = Database.query('SELECT * FROM waypoints WHERE gpx_file_id = ? ORDER BY id', [gpxId]);
+
+                output.append('<h3>Expected Display:</h3>');
+                output.append('<div style="background: white; padding: 15px; border: 1px solid #ccc; font-family: monospace;">');
+                output.append('<strong>..</strong><br><br>');
+
+                if (routes.length > 0) {
+                    output.append('<strong>Routes</strong><br>');
+                    routes.forEach(route => {
+                        output.append(`&nbsp;&nbsp;${route.name}<br>`);
+                    });
+                    output.append('<br>');
+                } else {
+                    output.append('<span class="error">Routes section missing!</span><br><br>');
+                }
+
+                if (tracks.length > 0) {
+                    output.append('<strong>Tracks</strong><br>');
+                    tracks.forEach(track => {
+                        output.append(`&nbsp;&nbsp;${track.name}<br>`);
+                    });
+                    output.append('<br>');
+                } else {
+                    output.append('<span class="error">Tracks section missing!</span><br><br>');
+                }
+
+                if (waypoints.length > 0) {
+                    output.append('<strong>Waypoints</strong><br>');
+                    waypoints.forEach(wp => {
+                        output.append(`&nbsp;&nbsp;${wp.name}<br>`);
+                    });
+                }
+
+                output.append('</div>');
+
+                // Validation
+                output.append('<h3>Validation:</h3>');
+                let allGood = true;
+
+                if (routes.length !== 6) {
+                    output.append(`<p class="error">✗ Expected 6 routes, got ${routes.length}</p>`);
+                    allGood = false;
+                } else {
+                    output.append(`<p class="success">✓ Routes: 6 (correct)</p>`);
+                }
+
+                if (tracks.length !== 6) {
+                    output.append(`<p class="error">✗ Expected 6 tracks, got ${tracks.length}</p>`);
+                    allGood = false;
+                } else {
+                    output.append(`<p class="success">✓ Tracks: 6 (correct - generated from routes)</p>`);
+                }
+
+                if (waypoints.length !== 3) {
+                    output.append(`<p class="error">✗ Expected 3 waypoints, got ${waypoints.length}</p>`);
+                    allGood = false;
+                } else {
+                    output.append(`<p class="success">✓ Waypoints: 3 (correct)</p>`);
+                }
+
+                if (allGood) {
+                    output.append('<h2 class="success">✓ ALL TESTS PASSED!</h2>');
+                } else {
+                    output.append('<h2 class="error">✗ TESTS FAILED!</h2>');
+                }
+
+                output.append('</div>');
+
+            } catch (error) {
+                output.append(`<div class="section"><p class="error">✗ ERROR: ${error.message}</p><pre>${error.stack}</pre></div>`);
+            }
+        }
+
+        function calculateRouteLength(points) {
+            let length = 0;
+            for (let i = 1; i < points.length; i++) {
+                const p1 = points[i - 1];
+                const p2 = points[i];
+                length += GPXNormalizer.calculateDistance(p1.lat, p1.lon, p2.lat, p2.lon);
+            }
+            return length;
+        }
+    </script>
+</body>
+</html>
