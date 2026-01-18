@@ -290,13 +290,43 @@ const GPXNormalizer = (function() {
     function countWaypoints(gpxData) {
         return (gpxData.waypoints || []).length;
     }
-    
+
+    /**
+     * Calculate route length from array of points
+     * @param {Array} points - Array of {lat, lon} objects
+     * @returns {Number} Length in kilometers
+     */
+    function calculateRouteLength(points) {
+        let length = 0;
+        for (let i = 1; i < points.length; i++) {
+            const p1 = points[i - 1];
+            const p2 = points[i];
+            length += calculateDistance(p1.lat, p1.lon, p2.lat, p2.lon);
+        }
+        return length;
+    }
+
+    /**
+     * Calculate track length from segments
+     * @param {Array} segments - Array of track segments, each with points array
+     * @returns {Number} Length in kilometers
+     */
+    function calculateTrackLength(segments) {
+        let length = 0;
+        segments.forEach(segment => {
+            length += calculateRouteLength(segment.points);
+        });
+        return length;
+    }
+
     // Public API
     return {
         normalize,
         calculateLength,
         calculateRidingTime,
         countWaypoints,
-        calculateDistance
+        calculateDistance,
+        calculateRouteLength,
+        calculateTrackLength
     };
 })();

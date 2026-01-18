@@ -1352,7 +1352,7 @@ const UIController = (function() {
             if (newGpxData.routes && newGpxData.routes.length > 0) {
                 for (let i = 0; i < newGpxData.routes.length; i++) {
                     const route = newGpxData.routes[i];
-                    const routeLength = calculateRouteLength(route.points);
+                    const routeLength = GPXNormalizer.calculateRouteLength(route.points);
                     const routeTime = routeLength / 50;
                     await Database.execute(
                         'INSERT INTO routes (gpx_file_id, index_in_gpx, name, length_km, riding_time_hours) VALUES (?, ?, ?, ?, ?)',
@@ -1364,7 +1364,7 @@ const UIController = (function() {
             if (newGpxData.tracks && newGpxData.tracks.length > 0) {
                 for (let i = 0; i < newGpxData.tracks.length; i++) {
                     const track = newGpxData.tracks[i];
-                    const trackLength = calculateTrackLength(track.segments);
+                    const trackLength = GPXNormalizer.calculateTrackLength(track.segments);
                     const trackTime = trackLength / 50;
                     await Database.execute(
                         'INSERT INTO tracks (gpx_file_id, index_in_gpx, name, length_km, riding_time_hours) VALUES (?, ?, ?, ?, ?)',
@@ -1483,7 +1483,7 @@ const UIController = (function() {
             if (normalizedGpxData.routes && normalizedGpxData.routes.length > 0) {
                 for (let i = 0; i < normalizedGpxData.routes.length; i++) {
                     const route = normalizedGpxData.routes[i];
-                    const routeLength = calculateRouteLength(route.points);
+                    const routeLength = GPXNormalizer.calculateRouteLength(route.points);
                     const routeTime = routeLength / 50;
                     await Database.execute(
                         'INSERT INTO routes (gpx_file_id, index_in_gpx, name, length_km, riding_time_hours) VALUES (?, ?, ?, ?, ?)',
@@ -1495,7 +1495,7 @@ const UIController = (function() {
             if (normalizedGpxData.tracks && normalizedGpxData.tracks.length > 0) {
                 for (let i = 0; i < normalizedGpxData.tracks.length; i++) {
                     const track = normalizedGpxData.tracks[i];
-                    const trackLength = calculateTrackLength(track.segments);
+                    const trackLength = GPXNormalizer.calculateTrackLength(track.segments);
                     const trackTime = trackLength / 50;
                     await Database.execute(
                         'INSERT INTO tracks (gpx_file_id, index_in_gpx, name, length_km, riding_time_hours) VALUES (?, ?, ?, ?, ?)',
@@ -1602,30 +1602,6 @@ const UIController = (function() {
     
     function hideLoadingSpinner() {
         $('.spinner-overlay').remove();
-    }
-
-    /**
-     * Calculate route length from points
-     */
-    function calculateRouteLength(points) {
-        let length = 0;
-        for (let i = 1; i < points.length; i++) {
-            const p1 = points[i - 1];
-            const p2 = points[i];
-            length += GPXNormalizer.calculateDistance(p1.lat, p1.lon, p2.lat, p2.lon);
-        }
-        return length;
-    }
-
-    /**
-     * Calculate track length from segments
-     */
-    function calculateTrackLength(segments) {
-        let length = 0;
-        segments.forEach(segment => {
-            length += calculateRouteLength(segment.points);
-        });
-        return length;
     }
 
     // Public API
