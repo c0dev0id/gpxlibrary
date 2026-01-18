@@ -109,17 +109,11 @@ const FileManager = (function() {
                 }
                 
                 // Normalize to GPX 1.0
-                console.log('Normalizing GPX for file:', file.name);
                 const normalizedContent = GPXNormalizer.normalize(gpxData);
-                console.log('Normalized content length:', normalizedContent.length);
 
                 // Parse the normalized content to get the final routes, tracks, and waypoints
                 // (The normalizer may have created tracks from routes and waypoints from route points)
                 const normalizedGpxData = GPXParser.parse(normalizedContent);
-                console.log('Normalized GPX data:', normalizedGpxData);
-                console.log('Routes:', normalizedGpxData.routes ? normalizedGpxData.routes.length : 0);
-                console.log('Tracks:', normalizedGpxData.tracks ? normalizedGpxData.tracks.length : 0);
-                console.log('Waypoints:', normalizedGpxData.waypoints ? normalizedGpxData.waypoints.length : 0);
 
                 // Calculate metadata from normalized data
                 const lengthKm = GPXNormalizer.calculateLength(normalizedGpxData);
@@ -141,33 +135,24 @@ const FileManager = (function() {
                     [fileName, folderId, normalizedContent, lengthKm, waypointCount, ridingTimeHours, timestamp]
                 );
 
-                console.log('GPX file inserted with ID:', gpxId);
-
                 // Store routes, tracks, waypoints from NORMALIZED data
                 // (The normalizer creates tracks from routes and waypoints from route points)
-                console.log('Storing routes, tracks, waypoints for GPX ID:', gpxId);
 
                 // Store routes (from normalized GPX)
                 if (normalizedGpxData.routes && normalizedGpxData.routes.length > 0) {
-                    console.log('Storing', normalizedGpxData.routes.length, 'routes');
                     for (let i = 0; i < normalizedGpxData.routes.length; i++) {
                         const route = normalizedGpxData.routes[i];
                         const routeLength = calculateRouteLength(route.points);
                         const routeTime = routeLength / 50; // Simple estimation
-                        console.log(`  Route ${i}: "${route.name}", ${route.points.length} points, ${routeLength.toFixed(1)}km`);
                         await Database.execute(
                             'INSERT INTO routes (gpx_file_id, index_in_gpx, name, length_km, riding_time_hours) VALUES (?, ?, ?, ?, ?)',
                             [gpxId, i, route.name || 'Unnamed Route', routeLength, routeTime]
                         );
                     }
-                    console.log('✓ Routes stored');
-                } else {
-                    console.log('No routes to store');
                 }
 
                 // Store tracks (from normalized GPX - may have been created from routes)
                 if (normalizedGpxData.tracks && normalizedGpxData.tracks.length > 0) {
-                    console.log('Storing', normalizedGpxData.tracks.length, 'tracks');
                     for (let i = 0; i < normalizedGpxData.tracks.length; i++) {
                         const track = normalizedGpxData.tracks[i];
                         let trackLength = 0;
@@ -175,29 +160,21 @@ const FileManager = (function() {
                             trackLength += calculateRouteLength(segment.points);
                         });
                         const trackTime = trackLength / 50; // Simple estimation
-                        console.log(`  Track ${i}: "${track.name}", ${track.segments.length} segments, ${trackLength.toFixed(1)}km`);
                         await Database.execute(
                             'INSERT INTO tracks (gpx_file_id, index_in_gpx, name, length_km, riding_time_hours) VALUES (?, ?, ?, ?, ?)',
                             [gpxId, i, track.name || 'Unnamed Track', trackLength, trackTime]
                         );
                     }
-                    console.log('✓ Tracks stored');
-                } else {
-                    console.log('No tracks to store');
                 }
 
                 // Store waypoints (from normalized GPX - may have been created from route points)
                 if (normalizedGpxData.waypoints && normalizedGpxData.waypoints.length > 0) {
-                    console.log('Storing', normalizedGpxData.waypoints.length, 'waypoints');
                     for (const waypoint of normalizedGpxData.waypoints) {
                         await Database.execute(
                             'INSERT INTO waypoints (gpx_file_id, name, lat, lon) VALUES (?, ?, ?, ?)',
                             [gpxId, waypoint.name || 'Waypoint', waypoint.lat, waypoint.lon]
                         );
                     }
-                    console.log('✓ Waypoints stored');
-                } else {
-                    console.log('No waypoints to store');
                 }
 
                 

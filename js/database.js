@@ -30,12 +30,10 @@ const Database = (function() {
             
             if (savedDb) {
                 db = new SQL.Database(savedDb);
-                console.log('Database loaded from IndexedDB');
                 await runMigrations();
             } else {
                 db = new SQL.Database();
                 await createSchema();
-                console.log('New database created');
             }
             
             return true;
@@ -133,7 +131,6 @@ const Database = (function() {
             const hasRoutesIndex = routesColumns[0]?.values?.some(row => row[1] === 'index_in_gpx');
 
             if (!hasRoutesIndex) {
-                console.log('Running migration: adding index_in_gpx to routes table');
                 db.run('ALTER TABLE routes ADD COLUMN index_in_gpx INTEGER DEFAULT 0');
             }
 
@@ -142,7 +139,6 @@ const Database = (function() {
             const hasTracksIndex = tracksColumns[0]?.values?.some(row => row[1] === 'index_in_gpx');
 
             if (!hasTracksIndex) {
-                console.log('Running migration: adding index_in_gpx to tracks table');
                 db.run('ALTER TABLE tracks ADD COLUMN index_in_gpx INTEGER DEFAULT 0');
             }
 
@@ -263,7 +259,6 @@ const Database = (function() {
             if (sql.trim().toUpperCase().startsWith('INSERT')) {
                 const result = query('SELECT last_insert_rowid() as id');
                 lastId = result[0].id;
-                console.log('INSERT executed, last_insert_rowid():', lastId);
             }
 
             await saveToIndexedDB();
@@ -280,7 +275,6 @@ const Database = (function() {
      */
     function getLastInsertId() {
         const result = query('SELECT last_insert_rowid() as id');
-        console.log('getLastInsertId() returned:', result[0].id);
         return result[0].id;
     }
     
@@ -343,7 +337,6 @@ const Database = (function() {
             const request = indexedDB.deleteDatabase(currentDbName);
 
             request.onsuccess = async () => {
-                console.log('Database deleted successfully');
                 try {
                     // Reinitialize
                     await init();

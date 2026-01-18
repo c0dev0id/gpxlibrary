@@ -18,20 +18,12 @@ const GPXNormalizer = (function() {
         // Filter out Garmin extension routes early in the process
         // These should not be converted to tracks or included in the output
         if (gpxData.routes && gpxData.routes.length > 0) {
-            const originalCount = gpxData.routes.length;
             gpxData.routes = gpxData.routes.filter(route => {
                 const name = route.name || '';
                 const isGarminExtension = name.includes('Garmin Trip Extension') ||
                                          name.includes('Garmin RoutePoint Extension');
-                if (isGarminExtension) {
-                    console.log('Filtering out Garmin extension route:', name);
-                }
                 return !isGarminExtension;
             });
-            const filteredCount = originalCount - gpxData.routes.length;
-            if (filteredCount > 0) {
-                console.log(`Filtered out ${filteredCount} Garmin extension route(s)`);
-            }
         }
 
         // Create new GPX 1.0 document
