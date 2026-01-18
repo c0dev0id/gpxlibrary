@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>GPX Upload Debug Tool</title>
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/sql-wasm.js"></script>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .success { color: green; font-weight: bold; }
+        .error { color: red; font-weight: bold; }
+        .section { margin: 20px 0; padding: 10px; border: 1px solid #ccc; }
+        button { padding: 10px 20px; margin: 10px 0; font-size: 16px; }
+        pre { background: #f0f0f0; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>GPX Upload & Display Debug Tool</h1>
+
+    <div class="section">
+        <h2>Step 1: Select GPX File</h2>
+        <input type="file" id="gpxFileInput" accept=".gpx">
+        <button onclick="processFile()">Process File</button>
+    </div>
+
+    <div class="section" id="output"></div>
+
+    <script src="js/database.js"></script>
+    <script src="js/gpx-parser.js"></script>
+    <script src="js/gpx-normalizer.js"></script>
+
+    <script>
+        let processedData = null;
+
+        async function processFile() {
+            const file = document.getElementById('gpxFileInput').files[0];
+            if (!file) {
+                alert('Please select a file');
+                return;
+            }
+
+            const output = $('#output');
+            output.html('<h2>Processing...</h2>');
+
+            try {
+                // Initialize database
+                output.append('<h3>1. Initializing Database</h3>');
+                await Database.init();
+                output.append('<p class="success">✓ Database initialized</p>');
+
+                // Read file
+                output.append('<h3>2. Reading File</h3>');
+                const content = await readFileAsText(file);
+                output.append(`<p class="success">✓ File read: ${file.name} (${content.length} bytes)</p>`);
+
+                // Parse original GPX
+                output.append('<h3>3. Parsing Original GPX</h3>');
+                const originalGpxData = GPXParser.parse(content);
+                output.append(`<p>GPX Version: ${originalGpxData.version}</p>`);
+                output.append(`<p>Routes: ${originalGpxData.routes ? originalGpxData.routes.length : 0}</p>`);
+                output.append(`<p>Tracks: ${originalGpxData.tracks ? originalGpxData.tracks.length : 0}</p>`);
+                output.append(`<p>Waypoints: ${originalGpxData.waypoints ? originalGpxData.waypoints.length : 0}</p>`);
+
+                if (originalGpxData.routes && originalGpxData.routes.length > 0) {
+                    output.append('<h4>Routes in Original:</h4><ul>');
+                    originalGpxData.routes.forEach((route, i) => {
+                        output.append(`<li>[${i}] "${route.name}" - ${route.points.length} points</li>`);
+                    });
+                    output.append('</ul>');
+                }
+
+                if (originalGpxData.tracks && originalGpxData.tracks.length > 0) {
+                    output.append('<h4>Tracks in Original:</h4><ul>');
+                    originalGpxData.tracks.forEach((track, i) => {
+                        const totalPoints = track.segments.reduce((sum, seg) => sum + seg.points.length, 0);
+                        output.append(`<li>[${i}] "${track.name}" - ${track.segments.length} segments, ${totalPoints} points</li>`);
+                    });
+                    output.append('</ul>');
+                }
+
+                if (originalGpxData.waypoints && originalGpxData.waypoints.length > 0) {
+                    output.append(`<h4>Waypoints in Original: ${originalGpxData.waypoints.length}</h4>`);
+                    output.append('<ul>');
+                    originalGpxData.waypoints.slice(0, 10).forEach((wp, i) => {
+                        output.append(`<li>[${i}] "${wp.name}"</li>`);
+                    });
+                    if (originalGpxData.waypoints.length > 10) {
+                        output.append(`<li>... and ${originalGpxData.waypoints.length - 10} more</li>`);
+                    }
+                    output.append('</ul>');
+                }
+
+                // Normalize
+                output.append('<h3>4. Normalizing to GPX 1.0</h3>');
+                const normalizedContent = GPXNormalizer.normalize(originalGpxData);
+                output.append(`<p class="success">✓ Normalized (${normalizedContent.length} bytes)</p>`);
+
+                // Parse normalized
+                output.append('<h3>5. Parsing Normalized GPX</h3>');
+                const normalizedGpxData = GPXParser.parse(normalizedContent);
+                output.append(`<p>Routes: ${normalizedGpxData.routes ? normalizedGpxData.routes.length : 0}</p>`);
+                output.append(`<p>Tracks: ${normalizedGpxData.tracks ? normalizedGpxData.tracks.length : 0}</p>`);
+                output.append(`<p>Waypoints: ${normalizedGpxData.waypoints ? normalizedGpxData.waypoints.length : 0}</p>`);
+
+                if (normalizedGpxData.routes && normalizedGpxData.routes.length > 0) {
+                    output.append('<h4>Routes in Normalized:</h4><ul>');
+                    normalizedGpxData.routes.forEach((route, i) => {
+                        output.append(`<li>[${i}] "${route.name}" - ${route.points.length} points</li>`);
+                    });
+                    output.append('</ul>');
+                }
+
+                if (normalizedGpxData.tracks && normalizedGpxData.tracks.length > 0) {
+                    output.append('<h4>Tracks in Normalized:</h4><ul>');
+                    normalizedGpxData.tracks.forEach((track, i) => {
+                        const totalPoints = track.segments.reduce((sum, seg) => sum + seg.points.length, 0);
+                        output.append(`<li>[${i}] "${track.name}" - ${track.segments.length} segments, ${totalPoints} points</li>`);
+                    });
+                    output.append('</ul>');
+                }
+
+                if (normalizedGpxData.waypoints && normalizedGpxData.waypoints.length > 0) {
+                    output.append(`<h4>Waypoints in Normalized: ${normalizedGpxData.waypoints.length}</h4>`);
+                    output.append('<ul>');
+                    normalizedGpxData.waypoints.slice(0, 10).forEach((wp, i) => {
+                        output.append(`<li>[${i}] "${wp.name}"</li>`);
+                    });
+                    if (normalizedGpxData.waypoints.length > 10) {
+                        output.append(`<li>... and ${normalizedGpxData.waypoints.length - 10} more</li>`);
+                    }
+                    output.append('</ul>');
+                }
+
+                // Store processed data for later inspection
+                processedData = {
+                    file: file.name,
+                    original: originalGpxData,
+                    normalized: normalizedGpxData,
+                    normalizedContent: normalizedContent
+                };
+
+                output.append('<h3 class="success">✓ Processing Complete!</h3>');
+                output.append('<p>Data stored in window.processedData for inspection</p>');
+                window.processedData = processedData;
+
+                // Show what would be displayed in the UI
+                output.append('<h3>6. What Would Be Displayed in UI:</h3>');
+                let hasContent = false;
+
+                if (normalizedGpxData.routes && normalizedGpxData.routes.length > 0) {
+                    output.append('<h4>Routes Section:</h4><ul>');
+                    normalizedGpxData.routes.forEach((route, i) => {
+                        output.append(`<li>• ${route.name}</li>`);
+                        hasContent = true;
+                    });
+                    output.append('</ul>');
+                }
+
+                if (normalizedGpxData.tracks && normalizedGpxData.tracks.length > 0) {
+                    output.append('<h4>Tracks Section:</h4><ul>');
+                    normalizedGpxData.tracks.forEach((track, i) => {
+                        output.append(`<li>• ${track.name}</li>`);
+                        hasContent = true;
+                    });
+                    output.append('</ul>');
+                }
+
+                if (normalizedGpxData.waypoints && normalizedGpxData.waypoints.length > 0) {
+                    output.append('<h4>Waypoints Section:</h4><ul>');
+                    normalizedGpxData.waypoints.forEach((wp, i) => {
+                        output.append(`<li>• ${wp.name}</li>`);
+                        hasContent = true;
+                    });
+                    output.append('</ul>');
+                }
+
+                if (!hasContent) {
+                    output.append('<p class="error">✗ NO CONTENT TO DISPLAY!</p>');
+                }
+
+            } catch (error) {
+                output.append(`<p class="error">✗ ERROR: ${error.message}</p>`);
+                output.append(`<pre>${error.stack}</pre>`);
+            }
+        }
+
+        function readFileAsText(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = (e) => reject(new Error('Failed to read file'));
+                reader.readAsText(file);
+            });
+        }
+    </script>
+</body>
+</html>
