@@ -38,6 +38,10 @@ const UIController = (function() {
         // Developer tools
         $('#deleteDbBtn').on('click', handleDeleteDbClick);
 
+        // File actions
+        $('#renameBtn').on('click', handleRenameClick);
+        $('#deleteBtn').on('click', handleDeleteClick);
+
         // Filter inputs
         $('#filterName').on('input', handleFilterChange);
         $('#filterLengthMin, #filterLengthMax').on('input', handleFilterChange);
@@ -233,7 +237,7 @@ const UIController = (function() {
     function handleItemClick(e, type, id, $item) {
         const selectedItems = FileManager.getSelectedItems();
         const isSelected = selectedItems.some(i => i.type === type && i.id === id);
-        
+
         if (e.ctrlKey || e.metaKey) {
             // Multi-select
             if (isSelected) {
@@ -243,16 +247,65 @@ const UIController = (function() {
                 FileManager.addSelectedItem({ type, id });
                 $item.addClass('selected');
             }
+            // Update preview for all selected items
+            updateMultiSelectPreview();
         } else {
             // Single select
             FileManager.clearSelection();
             $('.file-item').removeClass('selected');
             FileManager.addSelectedItem({ type, id });
             $item.addClass('selected');
-            
+
             // Update preview
             updatePreview(type, id);
         }
+    }
+
+    /**
+     * Update preview for multiple selected items
+     */
+    function updateMultiSelectPreview() {
+        const selectedItems = FileManager.getSelectedItems();
+        const currentGpxId = FileManager.getCurrentGpxId();
+
+        if (selectedItems.length === 0) {
+            MapPreview.showEmptyState();
+            updatePreviewTitle('No selection');
+            return;
+        }
+
+        if (selectedItems.length === 1) {
+            updatePreview(selectedItems[0].type, selectedItems[0].id);
+            return;
+        }
+
+        // Multiple items selected - display all on map
+        MapPreview.clearMap();
+
+        let totalLength = 0;
+        let itemNames = [];
+
+        selectedItems.forEach(item => {
+            if (item.type === 'route') {
+                const route = Database.query('SELECT * FROM routes WHERE id = ?', [item.id])[0];
+                MapPreview.displayRoute(currentGpxId, item.id, true); // true = don't clear map
+                totalLength += route.length_km;
+                itemNames.push(route.name);
+            } else if (item.type === 'track') {
+                const track = Database.query('SELECT * FROM tracks WHERE id = ?', [item.id])[0];
+                MapPreview.displayTrack(currentGpxId, item.id, true); // true = don't clear map
+                totalLength += track.length_km;
+                itemNames.push(track.name);
+            } else if (item.type === 'waypoint') {
+                MapPreview.displayWaypoint(currentGpxId, item.id, true); // true = don't clear map
+                itemNames.push(Database.query('SELECT name FROM waypoints WHERE id = ?', [item.id])[0].name);
+            }
+        });
+
+        MapPreview.fitBounds();
+
+        const metadata = `${selectedItems.length} items selected${totalLength > 0 ? ` • Total length: ${totalLength.toFixed(1)} km` : ''}`;
+        updatePreviewTitle(itemNames.join(', '), metadata);
     }
     
     /**
@@ -410,8 +463,152 @@ const UIController = (function() {
     }
     
     function handleDownloadClick() {
-        // Implementation will be added in Phase 5
-        alert('Download functionality coming soon!');
+        const selectedItems = FileManager.getSelectedItems();
+
+        if (selectedItems.length === 0) {
+            alert('Please select one or more GPX files to download');
+            return;
+        }
+
+        // Filter only GPX files
+        const gpxFiles = selectedItems.filter(item => item.type === 'gpx');
+
+        if (gpxFiles.length === 0) {
+            alert('Please select GPX files to download (folders cannot be downloaded yet)');
+            return;
+        }
+
+        if (gpxFiles.length === 1) {
+            // Single file download
+            downloadSingleGpx(gpxFiles[0].id);
+        } else {
+            // Multiple files - download as ZIP
+            downloadMultipleGpx(gpxFiles);
+        }
+    }
+
+    function downloadSingleGpx(gpxId) {
+        const gpxFile = FileManager.getGpxFile(gpxId);
+        if (!gpxFile) {
+            alert('GPX file not found');
+            return;
+        }
+
+        // Create download link
+        const blob = new Blob([gpxFile.content], { type: 'application/gpx+xml' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = gpxFile.name + '.gpx';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    function downloadMultipleGpx(gpxFiles) {
+        const zip = new JSZip();
+
+        gpxFiles.forEach(item => {
+            const gpxFile = FileManager.getGpxFile(item.id);
+            if (gpxFile) {
+                zip.file(gpxFile.name + '.gpx', gpxFile.content);
+            }
+        });
+
+        zip.generateAsync({ type: 'blob' })
+            .then(content => {
+                const url = URL.createObjectURL(content);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'gpx-files.zip';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            })
+            .catch(error => {
+                alert('Failed to create ZIP file: ' + error.message);
+            });
+    }
+
+    function handleRenameClick() {
+        const selectedItems = FileManager.getSelectedItems();
+
+        if (selectedItems.length === 0) {
+            alert('Please select an item to rename');
+            return;
+        }
+
+        if (selectedItems.length > 1) {
+            alert('Please select only one item to rename');
+            return;
+        }
+
+        const item = selectedItems[0];
+        let currentName = '';
+
+        if (item.type === 'folder') {
+            const folder = Database.query('SELECT name FROM folders WHERE id = ?', [item.id]);
+            currentName = folder[0]?.name || '';
+        } else if (item.type === 'gpx') {
+            const gpxFile = FileManager.getGpxFile(item.id);
+            currentName = gpxFile?.name || '';
+        } else {
+            alert('Cannot rename this type of item');
+            return;
+        }
+
+        const newName = prompt('Enter new name:', currentName);
+        if (!newName || newName === currentName) return;
+
+        if (item.type === 'folder') {
+            FileManager.renameFolder(item.id, newName)
+                .then(() => {
+                    renderFileList();
+                })
+                .catch(error => {
+                    alert('Failed to rename folder: ' + error.message);
+                });
+        } else if (item.type === 'gpx') {
+            FileManager.renameGpxFile(item.id, newName)
+                .then(() => {
+                    renderFileList();
+                })
+                .catch(error => {
+                    alert('Failed to rename file: ' + error.message);
+                });
+        }
+    }
+
+    function handleDeleteClick() {
+        const selectedItems = FileManager.getSelectedItems();
+
+        if (selectedItems.length === 0) {
+            alert('Please select one or more items to delete');
+            return;
+        }
+
+        const confirmMsg = selectedItems.length === 1
+            ? 'Are you sure you want to delete this item?'
+            : `Are you sure you want to delete ${selectedItems.length} items?`;
+
+        if (!confirm(confirmMsg)) return;
+
+        Promise.all(selectedItems.map(item => {
+            if (item.type === 'folder') {
+                return FileManager.deleteFolder(item.id);
+            } else if (item.type === 'gpx') {
+                return FileManager.deleteGpxFile(item.id);
+            }
+        }))
+        .then(() => {
+            FileManager.clearSelection();
+            renderFileList();
+        })
+        .catch(error => {
+            alert('Failed to delete items: ' + error.message);
+        });
     }
     
     function handleNewFolderClick() {

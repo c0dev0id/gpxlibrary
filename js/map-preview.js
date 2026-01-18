@@ -172,8 +172,10 @@ const MapPreview = (function() {
     /**
      * Display specific route on map
      */
-    function displayRoute(gpxId, routeId) {
-        clearLayers();
+    function displayRoute(gpxId, routeId, keepExisting = false) {
+        if (!keepExisting) {
+            clearLayers();
+        }
 
         const gpxFile = FileManager.getGpxFile(gpxId);
         if (!gpxFile) {
@@ -217,23 +219,28 @@ const MapPreview = (function() {
 
         const latlngs = route.points.map(pt => [pt.lat, pt.lon]);
 
+        const colorIndex = keepExisting ? currentLayers.length % COLORS.length : 0;
         const polyline = L.polyline(latlngs, {
-            color: COLORS[0],
+            color: COLORS[colorIndex],
             weight: 6,
             opacity: 0.5
         }).addTo(map);
 
         currentLayers.push(polyline);
 
-        // Fit map to route
-        map.fitBounds(polyline.getBounds(), { padding: [50, 50] });
+        // Fit map to route (unless keeping existing layers)
+        if (!keepExisting) {
+            map.fitBounds(polyline.getBounds(), { padding: [50, 50] });
+        }
     }
     
     /**
      * Display specific track on map
      */
-    function displayTrack(gpxId, trackId) {
-        clearLayers();
+    function displayTrack(gpxId, trackId, keepExisting = false) {
+        if (!keepExisting) {
+            clearLayers();
+        }
 
         const gpxFile = FileManager.getGpxFile(gpxId);
         if (!gpxFile) {
@@ -276,6 +283,7 @@ const MapPreview = (function() {
         }
 
         const allPoints = [];
+        const colorIndex = keepExisting ? currentLayers.length % COLORS.length : 0;
 
         track.segments.forEach(segment => {
             if (segment.points && segment.points.length > 0) {
@@ -285,7 +293,7 @@ const MapPreview = (function() {
                 });
 
                 const polyline = L.polyline(latlngs, {
-                    color: COLORS[0],
+                    color: COLORS[colorIndex],
                     weight: 6,
                     opacity: 0.5
                 }).addTo(map);
@@ -294,11 +302,11 @@ const MapPreview = (function() {
             }
         });
 
-        // Fit map to track
-        if (allPoints.length > 0) {
+        // Fit map to track (unless keeping existing layers)
+        if (!keepExisting && allPoints.length > 0) {
             const bounds = L.latLngBounds(allPoints);
             map.fitBounds(bounds, { padding: [50, 50] });
-        } else {
+        } else if (!keepExisting) {
             console.error('displayTrack: No points found in track segments');
         }
     }
@@ -306,14 +314,16 @@ const MapPreview = (function() {
     /**
      * Display specific waypoint on map
      */
-    function displayWaypoint(gpxId, waypointId) {
-        clearLayers();
-        
+    function displayWaypoint(gpxId, waypointId, keepExisting = false) {
+        if (!keepExisting) {
+            clearLayers();
+        }
+
         const waypoints = Database.query('SELECT * FROM waypoints WHERE id = ?', [waypointId]);
         if (waypoints.length === 0) return;
-        
+
         const waypoint = waypoints[0];
-        
+
         const marker = L.circleMarker([waypoint.lat, waypoint.lon], {
             radius: 8,
             fillColor: '#dc3545',
@@ -322,14 +332,33 @@ const MapPreview = (function() {
             opacity: 1,
             fillOpacity: 0.8
         }).addTo(map);
-        
+
         const name = waypoint.name || 'Waypoint';
         marker.bindPopup(`<strong>${name}</strong>`).openPopup();
-        
+
         currentLayers.push(marker);
-        
-        // Center map on waypoint
-        map.setView([waypoint.lat, waypoint.lon], 15);
+
+        // Center map on waypoint (unless keeping existing layers)
+        if (!keepExisting) {
+            map.setView([waypoint.lat, waypoint.lon], 15);
+        }
+    }
+
+    /**
+     * Fit map bounds to show all current layers
+     */
+    function fitBounds() {
+        if (currentLayers.length === 0) return;
+
+        const group = L.featureGroup(currentLayers);
+        map.fitBounds(group.getBounds(), { padding: [50, 50] });
+    }
+
+    /**
+     * Alias for clearLayers
+     */
+    function clearMap() {
+        clearLayers();
     }
     
     /**
@@ -348,6 +377,8 @@ const MapPreview = (function() {
         displayTrack,
         displayWaypoint,
         showEmptyState,
-        clearLayers
+        clearLayers,
+        clearMap,
+        fitBounds
     };
 })();
