@@ -21,7 +21,7 @@ const UIController = (function() {
      */
     function init() {
         // Upload button
-        $('#uploadBtn').on('click', handleUploadClick);
+        $('#uploadBtn, #uploadBtnEmpty').on('click', handleUploadClick);
         $('#gpxFileInput').on('change', handleFileSelect);
         
         // Download button
