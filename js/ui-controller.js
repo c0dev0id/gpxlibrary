@@ -296,23 +296,53 @@ const UIController = (function() {
             .addClass(type)
             .data('type', type)
             .data('id', id);
-        
-        $item.append(`<span class="icon">${icon}</span>`);
-        $item.append(`<span class="name">${name || 'Unnamed'}</span>`);
-        if (metadata) {
-            $item.append(`<span class="metadata">${metadata}</span>`);
+
+        // GPX files get card-style layout
+        if (type === 'gpx') {
+            // Header row with icon and name
+            const $header = $('<div class="file-item-header">');
+            $header.append(`<span class="icon">${icon}</span>`);
+            $header.append(`<span class="name">${name || 'Unnamed'}</span>`);
+            $item.append($header);
+
+            // Metadata row with individual items
+            if (metadata) {
+                const $metadataRow = $('<div class="file-item-metadata">');
+
+                // Parse metadata string (format: "123.4km • 56 WP • 7.8h")
+                const parts = metadata.split('•').map(s => s.trim());
+
+                if (parts[0]) { // Distance
+                    $metadataRow.append(`<span class="metadata-item"><i class="bi bi-rulers"></i> ${parts[0]}</span>`);
+                }
+                if (parts[1]) { // Waypoints
+                    $metadataRow.append(`<span class="metadata-item"><i class="bi bi-geo-alt"></i> ${parts[1]}</span>`);
+                }
+                if (parts[2]) { // Time
+                    $metadataRow.append(`<span class="metadata-item"><i class="bi bi-clock"></i> ${parts[2]}</span>`);
+                }
+
+                $item.append($metadataRow);
+            }
+        } else {
+            // Other items (folders, routes, tracks, waypoints) keep single-line layout
+            $item.append(`<span class="icon">${icon}</span>`);
+            $item.append(`<span class="name">${name || 'Unnamed'}</span>`);
+            if (metadata) {
+                $item.append(`<span class="metadata">${metadata}</span>`);
+            }
         }
-        
+
         // Single click - select
         $item.on('click', function(e) {
             handleItemClick(e, type, id, $item);
         });
-        
+
         // Double click - navigate or preview
         $item.on('dblclick', function(e) {
             handleItemDoubleClick(type, id);
         });
-        
+
         return $item;
     }
     

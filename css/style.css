@@ -225,7 +225,7 @@ html, body {
     margin-bottom: 4px;
     border-radius: 4px;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: background-color 0.2s, box-shadow 0.2s;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -277,6 +277,70 @@ html, body {
     opacity: 1;
 }
 
+/* GPX file card-style layout */
+.file-item.gpx {
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    border: 1px solid #e9ecef;
+    background-color: white;
+    display: block;
+}
+
+.file-item.gpx:hover {
+    background-color: #f8f9fa;
+    border-color: #dee2e6;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.file-item.gpx.selected {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: white;
+    box-shadow: 0 4px 8px rgba(13, 110, 253, 0.2);
+}
+
+.file-item.gpx .file-item-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.file-item.gpx .file-item-header .icon {
+    flex-shrink: 0;
+    width: 20px;
+    text-align: center;
+    font-size: 1.1em;
+}
+
+.file-item.gpx .file-item-header .name {
+    flex-grow: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 500;
+    font-size: 0.95em;
+}
+
+.file-item.gpx .file-item-metadata {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-left: 28px;
+    font-size: 0.8em;
+    opacity: 0.85;
+}
+
+.file-item.gpx.selected .file-item-metadata {
+    opacity: 0.95;
+}
+
+.file-item.gpx .metadata-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
 /* Editable name */
 .file-item .name.editing {
     background: white;
@@ -285,6 +349,15 @@ html, body {
     border: 1px solid #0d6efd;
     border-radius: 3px;
     outline: none;
+}
+
+/* Non-GPX items (folders, routes, tracks, waypoints) */
+.file-item.folder,
+.file-item.route,
+.file-item.track,
+.file-item.waypoint {
+    display: flex;
+    align-items: center;
 }
 
 /* Map container */
