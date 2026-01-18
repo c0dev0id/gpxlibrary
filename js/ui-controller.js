@@ -168,33 +168,38 @@ const UIController = (function() {
      */
     function renderFolderContents(folderId, $container) {
         const contents = FileManager.getFolderContents(folderId);
-        
-        // Add ".." navigation if not at root
-        if (folderId !== null) {
-            const $parentItem = createParentNavigationItem();
-            $container.append($parentItem);
-        }
-        
+
         // Apply filters
         const filteredFolders = contents.folders;
         const filteredFiles = applyFilters(contents.gpxFiles);
-        
+
         // Render folders
         filteredFolders.forEach(folder => {
             const $item = createFileItem('folder', folder.id, folder.name, '📁');
             $container.append($item);
         });
-        
+
         // Render GPX files
         filteredFiles.forEach(file => {
             const metadata = `${file.length_km.toFixed(1)}km • ${file.waypoint_count} WP • ${file.riding_time_hours.toFixed(1)}h`;
             const $item = createFileItem('gpx', file.id, file.name, '🗺️', metadata);
             $container.append($item);
         });
-        
+
         // Show empty state if needed
         if (filteredFolders.length === 0 && filteredFiles.length === 0) {
             $container.append('<div class="empty-state">No files or folders</div>');
+        }
+
+        // Auto-select first item
+        if (filteredFolders.length > 0) {
+            const firstFolder = filteredFolders[0];
+            FileManager.addSelectedItem({ type: 'folder', id: firstFolder.id });
+            $(`.file-item[data-type="folder"][data-id="${firstFolder.id}"]`).addClass('selected');
+        } else if (filteredFiles.length > 0) {
+            const firstFile = filteredFiles[0];
+            FileManager.addSelectedItem({ type: 'gpx', id: firstFile.id });
+            $(`.file-item[data-type="gpx"][data-id="${firstFile.id}"]`).addClass('selected');
         }
     }
     
@@ -203,39 +208,52 @@ const UIController = (function() {
      */
     function renderGpxContents(gpxId, $container) {
         const contents = FileManager.getGpxContents(gpxId);
-
-        // Add ".." navigation to go back to folder view
-        const $parentItem = createParentNavigationItem();
-        $container.append($parentItem);
+        let firstItem = null;
 
         // Routes section
         if (contents.routes.length > 0) {
             $container.append('<div class="gpx-section-header">Routes</div>');
-            contents.routes.forEach(route => {
+            contents.routes.forEach((route, index) => {
                 const metadata = `${route.length_km.toFixed(1)}km • ${route.riding_time_hours.toFixed(1)}h`;
                 const $item = createFileItem('route', route.id, route.name, '➡️', metadata);
                 $container.append($item);
+                if (index === 0 && !firstItem) {
+                    firstItem = { type: 'route', id: route.id };
+                }
             });
         }
 
         // Tracks section
         if (contents.tracks.length > 0) {
             $container.append('<div class="gpx-section-header">Tracks</div>');
-            contents.tracks.forEach(track => {
+            contents.tracks.forEach((track, index) => {
                 const metadata = `${track.length_km.toFixed(1)}km • ${track.riding_time_hours.toFixed(1)}h`;
                 const $item = createFileItem('track', track.id, track.name, '🛣️', metadata);
                 $container.append($item);
+                if (index === 0 && !firstItem) {
+                    firstItem = { type: 'track', id: track.id };
+                }
             });
         }
 
         // Waypoints section
         if (contents.waypoints.length > 0) {
             $container.append('<div class="gpx-section-header">Waypoints</div>');
-            contents.waypoints.forEach(waypoint => {
+            contents.waypoints.forEach((waypoint, index) => {
                 const metadata = `${waypoint.lat.toFixed(4)}, ${waypoint.lon.toFixed(4)}`;
                 const $item = createFileItem('waypoint', waypoint.id, waypoint.name, '📍', metadata);
                 $container.append($item);
+                if (index === 0 && !firstItem) {
+                    firstItem = { type: 'waypoint', id: waypoint.id };
+                }
             });
+        }
+
+        // Auto-select first item and update preview
+        if (firstItem) {
+            FileManager.addSelectedItem(firstItem);
+            $(`.file-item[data-type="${firstItem.type}"][data-id="${firstItem.id}"]`).addClass('selected');
+            updatePreview(firstItem.type, firstItem.id);
         }
     }
     

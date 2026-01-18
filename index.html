@@ -83,32 +83,28 @@
             </div>
 
             <!-- Contextual Action Toolbar (shown when items selected) -->
-            <div class="action-toolbar bg-white border-bottom p-2" id="actionToolbar" style="display: none;">
-                <div class="d-flex gap-2 justify-content-center flex-wrap">
-                    <button class="btn btn-sm btn-outline-secondary" id="copyBtn" data-bs-toggle="tooltip" title="Copy (Ctrl+C)">
-                        <i class="bi bi-files"></i> Copy
-                    </button>
-                    <button class="btn btn-sm btn-outline-secondary" id="pasteBtn" data-bs-toggle="tooltip" title="Paste (Ctrl+V)" disabled>
-                        <i class="bi bi-clipboard"></i> Paste
-                    </button>
-                    <div class="vr"></div>
-                    <button class="btn btn-sm btn-outline-primary" id="renameBtn" data-bs-toggle="tooltip" title="Rename (F2)">
-                        <i class="bi bi-pencil"></i> Rename
-                    </button>
-                    <button class="btn btn-sm btn-outline-success" id="downloadBtn" data-bs-toggle="tooltip" title="Download">
-                        <i class="bi bi-download"></i> Download
-                    </button>
-                    <button class="btn btn-sm btn-outline-danger" id="deleteBtn" data-bs-toggle="tooltip" title="Delete (Del)">
-                        <i class="bi bi-trash"></i> Delete
-                    </button>
-                </div>
-                <div class="text-center mt-2">
-                    <small class="text-muted" id="selectionCount">0 items selected</small>
-                </div>
-                <div class="text-center mt-1">
-                    <small class="text-muted" style="font-size: 0.75rem;">
-                        <i class="bi bi-info-circle"></i> Click item to view, click selector circle to multi-select
-                    </small>
+            <div class="action-toolbar border-bottom p-3" id="actionToolbar" style="display: none;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <small class="text-muted" id="selectionCount">0 items selected</small>
+                    </div>
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-sm btn-light" id="copyBtn" data-bs-toggle="tooltip" title="Copy (Ctrl+C)">
+                            <i class="bi bi-files"></i>
+                        </button>
+                        <button class="btn btn-sm btn-light" id="pasteBtn" data-bs-toggle="tooltip" title="Paste (Ctrl+V)" disabled>
+                            <i class="bi bi-clipboard"></i>
+                        </button>
+                        <button class="btn btn-sm btn-light" id="renameBtn" data-bs-toggle="tooltip" title="Rename (F2)">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button class="btn btn-sm btn-light" id="downloadBtn" data-bs-toggle="tooltip" title="Download">
+                            <i class="bi bi-download"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger" id="deleteBtn" data-bs-toggle="tooltip" title="Delete (Del)">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
 
