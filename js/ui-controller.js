@@ -1682,7 +1682,11 @@ const UIController = (function() {
     function handleDragEnd(e) {
         // Remove dragging class from all items
         $('.file-item').removeClass('dragging').removeClass('drag-over');
-        draggedItems = null;
+        // Don't clear draggedItems here - it will be cleared in handleDrop
+        // Use a timeout to clear it in case drop doesn't happen (e.g., dropped outside)
+        setTimeout(() => {
+            draggedItems = null;
+        }, 100);
     }
 
     function handleDragOver(e, $item) {
@@ -1722,19 +1726,23 @@ const UIController = (function() {
             return;
         }
 
+        // Store reference to dragged items before clearing
+        const itemsToMove = [...draggedItems];
+
         // Prevent dropping into self (if dragging a folder onto itself)
-        const isDroppingIntoSelf = draggedItems.some(item =>
+        const isDroppingIntoSelf = itemsToMove.some(item =>
             item.type === 'folder' && item.id === targetFolderId
         );
 
         if (isDroppingIntoSelf) {
             alert('Cannot move a folder into itself');
+            draggedItems = null;
             return;
         }
 
         try {
             // Move each item to the target folder
-            for (const item of draggedItems) {
+            for (const item of itemsToMove) {
                 if (item.type === 'folder') {
                     // Check if we're trying to move a parent folder into one of its descendants
                     if (await isFolderDescendant(targetFolderId, item.id)) {
@@ -1760,12 +1768,15 @@ const UIController = (function() {
             renderFileList();
             updateActionToolbar();
 
-            const itemCount = draggedItems.length;
+            const itemCount = itemsToMove.length;
             const targetName = Database.query('SELECT name FROM folders WHERE id = ?', [targetFolderId])[0]?.name || 'folder';
             alert(`Moved ${itemCount} item(s) to "${targetName}"`);
 
         } catch (error) {
             alert('Failed to move items: ' + error.message);
+        } finally {
+            // Clear draggedItems after drop is complete
+            draggedItems = null;
         }
     }
 
