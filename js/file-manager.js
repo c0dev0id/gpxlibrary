@@ -134,19 +134,14 @@ const FileManager = (function() {
 
                 // Insert GPX file
                 const timestamp = Date.now();
-                await Database.execute(
+                const gpxId = await Database.execute(
                     `INSERT INTO gpx_files
                     (name, folder_id, content, length_km, waypoint_count, riding_time_hours, created_at)
                     VALUES (?, ?, ?, ?, ?, ?, ?)`,
                     [fileName, folderId, normalizedContent, lengthKm, waypointCount, ridingTimeHours, timestamp]
                 );
 
-                const gpxId = Database.getLastInsertId();
                 console.log('GPX file inserted with ID:', gpxId);
-
-                // Verify by querying
-                const verifyResult = Database.query('SELECT id, name FROM gpx_files WHERE name = ?', [fileName]);
-                console.log('Verification query result:', verifyResult);
 
                 // Store routes, tracks, waypoints from NORMALIZED data
                 // (The normalizer creates tracks from routes and waypoints from route points)

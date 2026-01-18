@@ -252,20 +252,31 @@ const Database = (function() {
     
     /**
      * Execute a statement (INSERT, UPDATE, DELETE)
+     * Returns the last insert ID for INSERT statements, true for others
      */
     async function execute(sql, params = []) {
         try {
             db.run(sql, params);
+
+            // Get last insert ID immediately after INSERT (before saveToIndexedDB)
+            let lastId = null;
+            if (sql.trim().toUpperCase().startsWith('INSERT')) {
+                const result = query('SELECT last_insert_rowid() as id');
+                lastId = result[0].id;
+                console.log('INSERT executed, last_insert_rowid():', lastId);
+            }
+
             await saveToIndexedDB();
-            return true;
+
+            return lastId !== null ? lastId : true;
         } catch (error) {
             console.error('Execute error:', error, sql, params);
             throw error;
         }
     }
-    
+
     /**
-     * Get last insert ID
+     * Get last insert ID (deprecated - execute() now returns the ID directly for INSERT statements)
      */
     function getLastInsertId() {
         const result = query('SELECT last_insert_rowid() as id');
