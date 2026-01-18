@@ -11,6 +11,9 @@
      */
     async function init() {
         try {
+            // Initialize toast notifications first
+            Toast.init();
+
             // Show loading
             UIController.showLoadingSpinner();
 
@@ -31,7 +34,7 @@
 
         } catch (error) {
             console.error('Application initialization failed:', error);
-            alert('Failed to initialize application: ' + error.message);
+            Toast.error('Failed to initialize application: ' + error.message, 0);
             UIController.hideLoadingSpinner();
         }
     }

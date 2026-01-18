@@ -628,7 +628,7 @@ const UIController = (function() {
                         updatePreviewTitle(`Copied to clipboard: ${name}`, coords);
                     })
                     .catch(err => {
-                        alert('Failed to copy coordinates to clipboard');
+                        Toast.error('Failed to copy coordinates to clipboard');
                     });
             }
         }
@@ -787,14 +787,14 @@ const UIController = (function() {
                 results.errors.forEach(err => {
                     errorMsg += `\n${err.file}: ${err.error}`;
                 });
-                alert(errorMsg);
+                Toast.error(errorMsg, 8000);
             }
-            
+
             if (results.success.length > 0) {
                 renderFileList();
             }
         } catch (error) {
-            alert('Upload failed: ' + error.message);
+            Toast.error('Upload failed: ' + error.message);
         } finally {
             hideLoadingSpinner();
             // Reset file input
@@ -806,7 +806,7 @@ const UIController = (function() {
         const selectedItems = FileManager.getSelectedItems();
 
         if (selectedItems.length === 0) {
-            alert('Please select one or more items to download');
+            Toast.warning('Please select one or more items to download');
             return;
         }
 
@@ -829,7 +829,7 @@ const UIController = (function() {
     function downloadSingleGpx(gpxId) {
         const gpxFile = FileManager.getGpxFile(gpxId);
         if (!gpxFile) {
-            alert('GPX file not found');
+            Toast.error('GPX file not found');
             return;
         }
 
@@ -867,7 +867,7 @@ const UIController = (function() {
                 URL.revokeObjectURL(url);
             })
             .catch(error => {
-                alert('Failed to create ZIP file: ' + error.message);
+                Toast.error('Failed to create ZIP file: ' + error.message);
             });
     }
 
@@ -880,7 +880,7 @@ const UIController = (function() {
         const gpxFiles = Database.query('SELECT * FROM gpx_files WHERE folder_id = ?', [folderId]);
 
         if (gpxFiles.length === 0) {
-            alert('Folder is empty');
+            Toast.info('Folder is empty');
             return;
         }
 
@@ -900,7 +900,7 @@ const UIController = (function() {
                 URL.revokeObjectURL(url);
             })
             .catch(error => {
-                alert('Failed to create ZIP file: ' + error.message);
+                Toast.error('Failed to create ZIP file: ' + error.message);
             });
     }
 
@@ -1061,7 +1061,7 @@ const UIController = (function() {
                 URL.revokeObjectURL(url);
             })
             .catch(error => {
-                alert('Failed to create ZIP file: ' + error.message);
+                Toast.error('Failed to create ZIP file: ' + error.message);
             });
     }
 
@@ -1069,12 +1069,12 @@ const UIController = (function() {
         const selectedItems = FileManager.getSelectedItems();
 
         if (selectedItems.length === 0) {
-            alert('Please select an item to rename');
+            Toast.warning('Please select an item to rename');
             return;
         }
 
         if (selectedItems.length > 1) {
-            alert('Please select only one item to rename');
+            Toast.warning('Please select only one item to rename');
             return;
         }
 
@@ -1097,7 +1097,7 @@ const UIController = (function() {
             const waypoint = Database.query('SELECT name FROM waypoints WHERE id = ?', [item.id]);
             currentName = waypoint[0]?.name || '';
         } else {
-            alert('Cannot rename this type of item');
+            Toast.error('Cannot rename this type of item');
             return;
         }
 
@@ -1115,7 +1115,7 @@ const UIController = (function() {
                     renderFileList();
                 })
                 .catch(error => {
-                    alert('Failed to rename folder: ' + error.message);
+                    Toast.error('Failed to rename folder: ' + error.message);
                 });
         } else if (item.type === 'gpx') {
             FileManager.renameGpxFile(item.id, newName)
@@ -1123,7 +1123,7 @@ const UIController = (function() {
                     renderFileList();
                 })
                 .catch(error => {
-                    alert('Failed to rename file: ' + error.message);
+                    Toast.error('Failed to rename file: ' + error.message);
                 });
         } else if (item.type === 'route') {
             FileManager.renameRoute(item.id, newName)
@@ -1131,7 +1131,7 @@ const UIController = (function() {
                     renderFileList();
                 })
                 .catch(error => {
-                    alert('Failed to rename route: ' + error.message);
+                    Toast.error('Failed to rename route: ' + error.message);
                 });
         } else if (item.type === 'track') {
             FileManager.renameTrack(item.id, newName)
@@ -1139,7 +1139,7 @@ const UIController = (function() {
                     renderFileList();
                 })
                 .catch(error => {
-                    alert('Failed to rename track: ' + error.message);
+                    Toast.error('Failed to rename track: ' + error.message);
                 });
         } else if (item.type === 'waypoint') {
             FileManager.renameWaypoint(item.id, newName)
@@ -1147,7 +1147,7 @@ const UIController = (function() {
                     renderFileList();
                 })
                 .catch(error => {
-                    alert('Failed to rename waypoint: ' + error.message);
+                    Toast.error('Failed to rename waypoint: ' + error.message);
                 });
         }
     }
@@ -1156,7 +1156,7 @@ const UIController = (function() {
         const selectedItems = FileManager.getSelectedItems();
 
         if (selectedItems.length === 0) {
-            alert('Please select one or more items to delete');
+            Toast.warning('Please select one or more items to delete');
             return;
         }
 
@@ -1193,7 +1193,7 @@ const UIController = (function() {
             renderFileList();
         })
         .catch(error => {
-            alert('Failed to delete items: ' + error.message);
+            Toast.error('Failed to delete items: ' + error.message);
         });
     }
     
@@ -1206,7 +1206,7 @@ const UIController = (function() {
                 renderFileList();
             })
             .catch(error => {
-                alert('Failed to create folder: ' + error.message);
+                Toast.error('Failed to create folder: ' + error.message);
             });
     }
     
@@ -1221,7 +1221,7 @@ const UIController = (function() {
             a.click();
             URL.revokeObjectURL(url);
         } catch (error) {
-            alert('Export failed: ' + error.message);
+            Toast.error('Export failed: ' + error.message);
         }
     }
     
@@ -1248,10 +1248,10 @@ const UIController = (function() {
             renderFileList();
             MapPreview.showEmptyState();
             updatePreviewTitle('Select a GPX file to preview');
-            
-            alert('Database imported successfully!');
+
+            Toast.success('Database imported successfully!');
         } catch (error) {
-            alert('Import failed: ' + error.message);
+            Toast.error('Import failed: ' + error.message);
         } finally {
             hideLoadingSpinner();
             $('#dbFileInput').val('');
@@ -1277,9 +1277,9 @@ const UIController = (function() {
             MapPreview.showEmptyState();
             updatePreviewTitle('Select a GPX file to preview');
 
-            alert('Database deleted and reinitialized successfully!');
+            Toast.success('Database deleted and reinitialized successfully!');
         } catch (error) {
-            alert('Delete failed: ' + error.message);
+            Toast.error('Delete failed: ' + error.message);
         } finally {
             hideLoadingSpinner();
         }
@@ -1349,7 +1349,7 @@ const UIController = (function() {
                 }, 1000);
             }
         } catch (error) {
-            alert('Failed to update track: ' + error.message);
+            Toast.error('Failed to update track: ' + error.message);
         }
     }
 
@@ -1570,7 +1570,7 @@ const UIController = (function() {
                     type: 'file-list'
                 };
 
-                alert(`Copied ${copyableItems.length} item(s). Use Ctrl+V or click Paste to paste into a folder.`);
+                Toast.success(`Copied ${copyableItems.length} item(s). Use Ctrl+V or click Paste to paste into a folder.`);
                 updateActionToolbar();
             }
         }
@@ -1618,9 +1618,9 @@ const UIController = (function() {
             clipboard = null;
             renderFileList();
             updateActionToolbar();
-            alert('Items pasted successfully!');
+            Toast.success('Items pasted successfully!');
         } catch (error) {
-            alert('Failed to paste items: ' + error.message);
+            Toast.error('Failed to paste items: ' + error.message);
         }
     }
 
@@ -1741,7 +1741,7 @@ const UIController = (function() {
         );
 
         if (isDroppingIntoSelf) {
-            alert('Cannot move a folder into itself');
+            Toast.warning('Cannot move a folder into itself');
             draggedItems = null;
             return;
         }
@@ -1752,7 +1752,7 @@ const UIController = (function() {
                 if (item.type === 'folder') {
                     // Check if we're trying to move a parent folder into one of its descendants
                     if (await isFolderDescendant(targetFolderId, item.id)) {
-                        alert(`Cannot move folder "${Database.query('SELECT name FROM folders WHERE id = ?', [item.id])[0]?.name}" into one of its subfolders`);
+                        Toast.warning(`Cannot move folder "${Database.query('SELECT name FROM folders WHERE id = ?', [item.id])[0]?.name}" into one of its subfolders`);
                         continue;
                     }
                     await Database.execute(
@@ -1776,10 +1776,10 @@ const UIController = (function() {
 
             const itemCount = itemsToMove.length;
             const targetName = Database.query('SELECT name FROM folders WHERE id = ?', [targetFolderId])[0]?.name || 'folder';
-            alert(`Moved ${itemCount} item(s) to "${targetName}"`);
+            Toast.success(`Moved ${itemCount} item(s) to "${targetName}"`);
 
         } catch (error) {
-            alert('Failed to move items: ' + error.message);
+            Toast.error('Failed to move items: ' + error.message);
         } finally {
             // Clear draggedItems after drop is complete
             draggedItems = null;
@@ -1953,7 +1953,7 @@ const UIController = (function() {
 
         } catch (error) {
             hideLoadingSpinner();
-            alert('Failed to paste: ' + error.message);
+            Toast.error('Failed to paste: ' + error.message);
         }
     }
 
@@ -2083,7 +2083,7 @@ const UIController = (function() {
 
         } catch (error) {
             hideLoadingSpinner();
-            alert('Failed to create GPX from paste: ' + error.message);
+            Toast.error('Failed to create GPX from paste: ' + error.message);
         }
     }
 
@@ -2111,7 +2111,7 @@ const UIController = (function() {
             hideSaveButton();
             updatePreviewTitle('Changes saved', '');
         } catch (error) {
-            alert('Failed to save changes: ' + error.message);
+            Toast.error('Failed to save changes: ' + error.message);
         }
     }
 
