@@ -15,18 +15,37 @@ const GPXNormalizer = (function() {
      * @returns {string} GPX 1.0 XML string
      */
     function normalize(gpxData) {
+        // Filter out Garmin extension routes early in the process
+        // These should not be converted to tracks or included in the output
+        if (gpxData.routes && gpxData.routes.length > 0) {
+            const originalCount = gpxData.routes.length;
+            gpxData.routes = gpxData.routes.filter(route => {
+                const name = route.name || '';
+                const isGarminExtension = name.includes('Garmin Trip Extension') ||
+                                         name.includes('Garmin RoutePoint Extension');
+                if (isGarminExtension) {
+                    console.log('Filtering out Garmin extension route:', name);
+                }
+                return !isGarminExtension;
+            });
+            const filteredCount = originalCount - gpxData.routes.length;
+            if (filteredCount > 0) {
+                console.log(`Filtered out ${filteredCount} Garmin extension route(s)`);
+            }
+        }
+
         // Create new GPX 1.0 document
         const doc = document.implementation.createDocument(null, 'gpx', null);
         const gpxElement = doc.documentElement;
-        
+
         // Set GPX 1.0 attributes
         gpxElement.setAttribute('version', '1.0');
         gpxElement.setAttribute('creator', 'GPX Library - Motorcycle Route Manager');
         gpxElement.setAttribute('xmlns', 'http://www.topografix.com/GPX/1/0');
         gpxElement.setAttribute('xmlns:xsi', 'http://www.w3.org/2001/XMLSchema-instance');
-        gpxElement.setAttribute('xsi:schemaLocation', 
+        gpxElement.setAttribute('xsi:schemaLocation',
             'http://www.topografix.com/GPX/1/0 http://www.topografix.com/GPX/1/0/gpx.xsd');
-        
+
         // Add metadata as GPX 1.0 elements
         if (gpxData.metadata.name) {
             addElement(doc, gpxElement, 'name', gpxData.metadata.name);
@@ -40,7 +59,7 @@ const GPXNormalizer = (function() {
         if (gpxData.metadata.time) {
             addElement(doc, gpxElement, 'time', gpxData.metadata.time);
         }
-        
+
         // Process waypoints
         let waypoints = [...(gpxData.waypoints || [])];
 
