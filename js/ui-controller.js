@@ -75,6 +75,12 @@ const UIController = (function() {
     function renderFolderContents(folderId, $container) {
         const contents = FileManager.getFolderContents(folderId);
         
+        // Add ".." navigation if not at root
+        if (folderId !== null) {
+            const $parentItem = createParentNavigationItem();
+            $container.append($parentItem);
+        }
+        
         // Apply filters
         const filteredFolders = contents.folders;
         const filteredFiles = applyFilters(contents.gpxFiles);
@@ -104,6 +110,10 @@ const UIController = (function() {
     function renderGpxContents(gpxId, $container) {
         const contents = FileManager.getGpxContents(gpxId);
         
+        // Add ".." navigation to go back to folder view
+        const $parentItem = createParentNavigationItem();
+        $container.append($parentItem);
+        
         // Routes section
         if (contents.routes.length > 0) {
             $container.append('<div class="gpx-section-header">Routes</div>');
@@ -132,6 +142,56 @@ const UIController = (function() {
                 const $item = createFileItem('waypoint', waypoint.id, waypoint.name, '📍', metadata);
                 $container.append($item);
             });
+        }
+    }
+    
+    /**
+     * Create parent navigation item ".."
+     */
+    function createParentNavigationItem() {
+        const $item = $('<div>')
+            .addClass('file-item')
+            .addClass('parent-nav')
+            .data('type', 'parent')
+            .data('id', -1);
+        
+        $item.append('<span class="icon">📁</span>');
+        $item.append('<span class="name">..</span>');
+        
+        // Double click to navigate up
+        $item.on('dblclick', function(e) {
+            navigateToParent();
+        });
+        
+        return $item;
+    }
+    
+    /**
+     * Navigate to parent folder or folder view
+     */
+    function navigateToParent() {
+        const currentGpxId = FileManager.getCurrentGpxId();
+        const currentFolderId = FileManager.getCurrentFolderId();
+        
+        if (currentGpxId !== null) {
+            // We're inside a GPX file, go back to folder view
+            FileManager.setCurrentGpxId(null);
+            FileManager.clearSelection();
+            renderFileList();
+            MapPreview.showEmptyState();
+            updatePreviewTitle('Select a GPX file to preview');
+        } else if (currentFolderId !== null) {
+            // We're in a subfolder, go to parent folder
+            const parentResult = Database.query(
+                'SELECT parent_id FROM folders WHERE id = ?',
+                [currentFolderId]
+            );
+            const parentId = parentResult.length > 0 ? parentResult[0].parent_id : null;
+            FileManager.setCurrentFolderId(parentId);
+            FileManager.clearSelection();
+            renderFileList();
+            MapPreview.showEmptyState();
+            updatePreviewTitle('Select a GPX file to preview');
         }
     }
     

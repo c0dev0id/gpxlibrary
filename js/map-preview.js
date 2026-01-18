@@ -88,7 +88,7 @@ const MapPreview = (function() {
                         
                         const polyline = L.polyline(latlngs, {
                             color: color,
-                            weight: 4,
+                            weight: 6,
                             opacity: 0.3
                         }).addTo(map);
                         
@@ -117,7 +117,7 @@ const MapPreview = (function() {
                     
                     const polyline = L.polyline(latlngs, {
                         color: color,
-                        weight: 4,
+                        weight: 6,
                         opacity: 0.3
                     }).addTo(map);
                     
@@ -194,7 +194,7 @@ const MapPreview = (function() {
         
         const polyline = L.polyline(latlngs, {
             color: COLORS[0],
-            weight: 4,
+            weight: 6,
             opacity: 0.5
         }).addTo(map);
         
@@ -236,7 +236,7 @@ const MapPreview = (function() {
                 
                 const polyline = L.polyline(latlngs, {
                     color: COLORS[0],
-                    weight: 4,
+                    weight: 6,
                     opacity: 0.5
                 }).addTo(map);
                 

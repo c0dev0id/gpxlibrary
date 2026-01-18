@@ -227,10 +227,24 @@ const GPXParser = (function() {
     
     /**
      * Helper function to get text content from element
+     * Handles both standard <name> and non-standard <n> tags
      */
     function getElementText(parent, selector) {
         const element = parent.querySelector(selector);
-        return element ? element.textContent.trim() : null;
+        if (element) {
+            return element.textContent.trim();
+        }
+        
+        // Try alternative <n> tag if selector was for <name>
+        if (selector === 'name' || selector.endsWith(' name')) {
+            const altSelector = selector.replace('name', 'n');
+            const altElement = parent.querySelector(altSelector);
+            if (altElement) {
+                return altElement.textContent.trim();
+            }
+        }
+        
+        return null;
     }
     
     /**

@@ -39,6 +39,16 @@ html, body {
     font-weight: 500;
 }
 
+.file-item.parent-nav {
+    font-weight: 500;
+    color: #6c757d;
+    font-style: italic;
+}
+
+.file-item.parent-nav:hover {
+    background-color: #e9ecef;
+}
+
 .file-item .icon {
     flex-shrink: 0;
     width: 20px;
