@@ -44,9 +44,6 @@ const UIController = (function() {
         $('#copyBtn').on('click', handleCopyClick);
         $('#pasteBtn').on('click', handlePasteClick);
 
-        // Multi-select mode
-        $('#multiSelectMode').on('change', handleMultiSelectModeChange);
-
         // Filter inputs
         $('#filterName').on('input', handleFilterChange);
         $('#filterLengthMin, #filterLengthMax').on('input', handleFilterChange);
@@ -302,6 +299,11 @@ const UIController = (function() {
             .data('type', type)
             .data('id', id);
 
+        // Add selection circle
+        const $selectionCircle = $('<div class="selection-circle">')
+            .append('<i class="bi bi-check-lg"></i>');
+        $item.append($selectionCircle);
+
         // GPX files get card-style layout
         if (type === 'gpx') {
             // Header row with icon and name
@@ -338,9 +340,17 @@ const UIController = (function() {
             }
         }
 
-        // Single click - select
+        // Selection circle click - multi-select toggle
+        $selectionCircle.on('click', function(e) {
+            e.stopPropagation();
+            handleSelectionCircleClick(type, id, $item);
+        });
+
+        // Item click (not on circle) - single select
         $item.on('click', function(e) {
-            handleItemClick(e, type, id, $item);
+            if (!$(e.target).closest('.selection-circle').length) {
+                handleItemClick(e, type, id, $item);
+            }
         });
 
         // Double click - navigate or preview
@@ -402,34 +412,47 @@ const UIController = (function() {
     }
 
     /**
-     * Handle item click (selection)
+     * Handle selection circle click (multi-select toggle)
      */
-    function handleItemClick(e, type, id, $item) {
+    function handleSelectionCircleClick(type, id, $item) {
         const selectedItems = FileManager.getSelectedItems();
         const isSelected = selectedItems.some(i => i.type === type && i.id === id);
-        const multiSelectMode = $('#multiSelectMode').is(':checked');
 
-        if (e.ctrlKey || e.metaKey || multiSelectMode) {
-            // Multi-select
-            if (isSelected) {
-                FileManager.removeSelectedItem({ type, id });
-                $item.removeClass('selected');
-            } else {
-                FileManager.addSelectedItem({ type, id });
-                $item.addClass('selected');
-            }
-            // Update preview for all selected items
-            updateMultiSelectPreview();
+        if (isSelected) {
+            // Unselect this item
+            FileManager.removeSelectedItem({ type, id });
+            $item.removeClass('selected');
         } else {
-            // Single select
-            FileManager.clearSelection();
-            $('.file-item').removeClass('selected');
+            // Add to selection
             FileManager.addSelectedItem({ type, id });
             $item.addClass('selected');
-
-            // Update preview
-            updatePreview(type, id);
         }
+
+        // Update preview for all selected items
+        updateMultiSelectPreview();
+
+        // Update action toolbar
+        updateActionToolbar();
+    }
+
+    /**
+     * Handle item click (single select)
+     */
+    function handleItemClick(e, type, id, $item) {
+        // Allow Ctrl+Click for multi-select as well
+        if (e.ctrlKey || e.metaKey) {
+            handleSelectionCircleClick(type, id, $item);
+            return;
+        }
+
+        // Single select - clear others and select this one
+        FileManager.clearSelection();
+        $('.file-item').removeClass('selected');
+        FileManager.addSelectedItem({ type, id });
+        $item.addClass('selected');
+
+        // Update preview
+        updatePreview(type, id);
 
         // Update action toolbar
         updateActionToolbar();
@@ -1392,26 +1415,6 @@ const UIController = (function() {
      */
     function handlePasteClick() {
         performPaste();
-    }
-
-    /**
-     * Handle multi-select mode checkbox change
-     */
-    function handleMultiSelectModeChange() {
-        const isChecked = $('#multiSelectMode').is(':checked');
-        if (!isChecked) {
-            // When turning off multi-select mode, keep current selection but switch to single-select behavior
-            const selectedItems = FileManager.getSelectedItems();
-            if (selectedItems.length > 1) {
-                // Keep only the first selected item
-                FileManager.clearSelection();
-                $('.file-item').removeClass('selected');
-                FileManager.addSelectedItem(selectedItems[0]);
-                $(`.file-item[data-type="${selectedItems[0].type}"][data-id="${selectedItems[0].id}"]`).addClass('selected');
-                updatePreview(selectedItems[0].type, selectedItems[0].id);
-                updateActionToolbar();
-            }
-        }
     }
 
     /**

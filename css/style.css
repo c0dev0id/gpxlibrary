@@ -243,6 +243,50 @@ html, body {
     display: flex;
     align-items: center;
     gap: 8px;
+    position: relative;
+    padding-left: 44px; /* Make room for selection circle */
+}
+
+/* Selection Circle */
+.selection-circle {
+    position: absolute;
+    left: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid #dee2e6;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    z-index: 10;
+}
+
+.selection-circle:hover {
+    border-color: #0d6efd;
+    background: #f8f9fa;
+    transform: translateY(-50%) scale(1.1);
+}
+
+.selection-circle i {
+    opacity: 0;
+    color: #0d6efd;
+    font-size: 14px;
+    transition: opacity 0.2s;
+}
+
+.file-item.selected .selection-circle {
+    background: #0d6efd;
+    border-color: #0d6efd;
+}
+
+.file-item.selected .selection-circle i {
+    opacity: 1;
+    color: white;
 }
 
 .file-item:hover {
@@ -294,6 +338,7 @@ html, body {
 /* GPX file card-style layout */
 .file-item.gpx {
     padding: 10px 12px;
+    padding-left: 44px; /* Make room for selection circle */
     margin-bottom: 8px;
     border: 1px solid #e9ecef;
     background-color: white;
