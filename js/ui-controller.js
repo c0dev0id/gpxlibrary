@@ -1680,30 +1680,47 @@ const UIController = (function() {
         // Store all selected items for dragging
         draggedItems = FileManager.getSelectedItems();
 
-        // Create custom drag image with opacity
-        const $dragImage = $item.clone();
+        // Create custom drag image with opacity (Firefox-compatible)
+        const $dragImage = $item.clone(true);
+
+        // Get computed styles from original item
+        const computedStyle = window.getComputedStyle($item[0]);
+        const bgColor = computedStyle.backgroundColor;
+        const selectedBgColor = computedStyle.backgroundColor || '#fef3f2';
+
         $dragImage.css({
             position: 'absolute',
             top: '-1000px',
-            left: '-1000px',
+            left: '0px', // Keep in viewport for Firefox
             opacity: 0.5,
             width: $item.outerWidth() + 'px',
             height: $item.outerHeight() + 'px',
-            pointerEvents: 'none'
+            pointerEvents: 'none',
+            backgroundColor: selectedBgColor, // Explicit background for Firefox
+            borderRadius: '8px',
+            zIndex: 10000
         });
+
+        // Ensure all child elements are visible
+        $dragImage.find('*').css('opacity', 1);
+
         $('body').append($dragImage);
 
-        // Set the custom drag image
-        const dragImageElement = $dragImage[0];
-        e.originalEvent.dataTransfer.setDragImage(dragImageElement,
-            e.originalEvent.offsetX || $item.outerWidth() / 2,
-            e.originalEvent.offsetY || $item.outerHeight() / 2
-        );
+        // Give Firefox time to render the element
+        requestAnimationFrame(() => {
+            // Set the custom drag image
+            const dragImageElement = $dragImage[0];
+            e.originalEvent.dataTransfer.setDragImage(
+                dragImageElement,
+                e.originalEvent.offsetX || $item.outerWidth() / 2,
+                e.originalEvent.offsetY || $item.outerHeight() / 2
+            );
 
-        // Remove the temporary drag image after a short delay
-        setTimeout(() => {
-            $dragImage.remove();
-        }, 0);
+            // Remove the temporary drag image after drag starts
+            setTimeout(() => {
+                $dragImage.remove();
+            }, 100);
+        });
 
         // Set drag effect
         e.originalEvent.dataTransfer.effectAllowed = 'move';
