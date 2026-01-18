@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<gpx xmlns="http://www.topografix.com/GPX/1/1" creator="Motorradfahren im Harz - http://motorrad.harzpoint.de" version="1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.garmin.com/xmlschemas/GpxExtensions/v3 http://www.garmin.com/xmlschemas/GpxExtensionsv3.xsd http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
+
+  <metadata>
+    <link href="http://motorrad.harzpoint.de">
+      <text>Motorradfahren im Harz - alle Infos für Motorradfahrer</text>
+    </link>
+  </metadata>
+  <rte>
+<name>Dtl. Suedwesten AT1</name>
+    <rtept lat="49.85285" lon="6.569">
+<name>Tour5 Anschluss1 Punkt1</name>
+      <sym>Flag, Red</sym>
+    </rtept>
+    <rtept lat="49.85171" lon="6.50906">
+<name>Tour5 Anschluss1 Punkt2</name>
+      <sym>Flag, Red</sym>
+    </rtept>
+    <rtept lat="49.869" lon="6.51948">
+<name>Tour5 Anschluss1 Punkt3</name>
+      <sym>Flag, Red</sym>
+    </rtept>
+    <rtept lat="49.90414" lon="6.47505">
+<name>Tour5 Anschluss1 Punkt4</name>
+      <sym>Flag, Red</sym>
+    </rtept>
+    <rtept lat="49.89596" lon="6.41181">
+<name>Tour5 Anschluss1 Punkt5</name>
+      <sym>Flag, Red</sym>
+    </rtept>
+    <rtept lat="49.89958" lon="6.38227">
+<name>Tour5 Anschluss1 Punkt6</name>
+      <sym>Flag, Red</sym>
+    </rtept>
+    <rtept lat="49.94726" lon="6.33063">
+<name>Tour5 Anschluss1 Punkt7</name>
+      <sym>Flag, Red</sym>
+    </rtept>
+    <rtept lat="49.97485" lon="6.32079">
+<name>Tour5 Anschluss1 Punkt8</name>
+      <sym>Flag, Red</sym>
+    </rtept>
+    <rtept lat="50.01101" lon="6.29532">
+<name>Tour5 Anschluss1 Punkt9</name>
+      <sym>Flag, Red</sym>
+    </rtept>
+    <rtept lat="50.05742" lon="6.26339">
+<name>Tour5 Anschluss1 Punkt10</name>
+      <sym>Flag, Red</sym>
+    </rtept>
+    <rtept lat="50.06961" lon="6.25395">
+<name>Tour5 Anschluss1 Punkt11</name>
+      <sym>Flag, Red</sym>
+    </rtept>
+    <rtept lat="50.06331" lon="6.2332">
+<name>Tour5 Anschluss1 Punkt12</name>
+      <sym>Flag, Red</sym>
+    </rtept>
+    <rtept lat="50.06265" lon="6.18633">
+<name>Tour5 Anschluss1 Punkt13</name>
+      <sym>Flag, Red</sym>
+    </rtept>
+    <rtept lat="50.0459" lon="6.15337">
+<name>Tour5 Anschluss1 Punkt14</name>
+      <sym>Flag, Red</sym>
+    </rtept>
+    <rtept lat="49.98573" lon="6.16718">
+<name>Tour5 Anschluss1 Punkt15</name>
+      <sym>Flag, Red</sym>
+    </rtept>
+    <rtept lat="49.94727" lon="6.19838">
+<name>Tour5 Anschluss1 Punkt16</name>
+      <sym>Flag, Red</sym>
+    </rtept>
+    <rtept lat="49.93465" lon="6.18771">
+<name>Tour5 Anschluss1 Punkt17</name>
+      <sym>Flag, Red</sym>
+    </rtept>
+    <rtept lat="49.9579" lon="6.13229">
+<name>Tour5 Anschluss1 Punkt18</name>
+      <sym>Flag, Red</sym>
+    </rtept>
+    <rtept lat="49.97342" lon="6.05244">
+<name>Tour5 Anschluss1 Punkt19</name>
+      <sym>Flag, Red</sym>
+    </rtept>
+    <rtept lat="49.95648" lon="6.05185">
+<name>Tour5 Anschluss1 Punkt20</name>
+      <sym>Flag, Red</sym>
+    </rtept>
+    <rtept lat="49.90746" lon="6.08505">
+<name>Tour5 Anschluss1 Punkt21</name>
+      <sym>Flag, Red</sym>
+    </rtept>
+    <rtept lat="49.85433" lon="6.11311">
+<name>Tour5 Anschluss1 Punkt22</name>
+      <sym>Flag, Red</sym>
+    </rtept>
+    <rtept lat="49.86745" lon="6.16512">
+<name>Tour5 Anschluss1 Punkt23</name>
+      <sym>Flag, Red</sym>
+    </rtept>
+    <rtept lat="49.87546" lon="6.21925">
+<name>Tour5 Anschluss1 Punkt24</name>
+      <sym>Flag, Red</sym>
+    </rtept>
+    <rtept lat="49.86761" lon="6.26594">
+<name>Tour5 Anschluss1 Punkt25</name>
+      <sym>Flag, Red</sym>
+    </rtept>
+    <rtept lat="49.85888" lon="6.31634">
+<name>Tour5 Anschluss1 Punkt26</name>
+      <sym>Flag, Red</sym>
+    </rtept>
+    <rtept lat="49.83623" lon="6.29172">
+<name>Tour5 Anschluss1 Punkt27</name>
+      <sym>Flag, Red</sym>
+    </rtept>
+    <rtept lat="49.8192" lon="6.27924">
+<name>Tour5 Anschluss1 Punkt28</name>
+      <sym>Flag, Red</sym>
+    </rtept>
+    <rtept lat="49.8105" lon="6.23179">
+<name>Tour5 Anschluss1 Punkt29</name>
+      <sym>Flag, Red</sym>
+    </rtept>
+    <rtept lat="49.78612" lon="6.22161">
+<name>Tour5 Anschluss1 Punkt30</name>
+      <sym>Flag, Red</sym>
+    </rtept>
+    <rtept lat="49.77952" lon="6.3429">
+<name>Tour5 Anschluss1 Punkt31</name>
+      <sym>Flag, Red</sym>
+    </rtept>
+    <rtept lat="49.74184" lon="6.33558">
+<name>Tour5 Anschluss1 Punkt32</name>
+      <sym>Flag, Red</sym>
+    </rtept>
+    <rtept lat="49.75313" lon="6.24366">
+<name>Tour5 Anschluss1 Punkt33</name>
+      <sym>Flag, Red</sym>
+    </rtept>
+    <rtept lat="49.71516" lon="6.24641">
+<name>Tour5 Anschluss1 Punkt34</name>
+      <sym>Flag, Red</sym>
+    </rtept>
+    <rtept lat="49.70321" lon="6.19713">
+<name>Tour5 Anschluss1 Punkt35</name>
+      <sym>Flag, Red</sym>
+    </rtept>
+    <rtept lat="49.69201" lon="6.18129">
+<name>Tour5 Anschluss1 Punkt36</name>
+      <sym>Flag, Red</sym>
+    </rtept>
+    <rtept lat="49.66161" lon="6.15193">
+<name>Tour5 Anschluss1 Punkt37</name>
+      <sym>Flag, Red</sym>
+    </rtept>
+    <rtept lat="49.64762" lon="6.13514">
+<name>Tour5 Anschluss1 Punkt38</name>
+      <sym>Flag, Red</sym>
+    </rtept>
+    <rtept lat="49.61315" lon="6.16162">
+<name>Tour5 Anschluss1 Punkt39</name>
+      <sym>Flag, Red</sym>
+    </rtept>
+    <rtept lat="49.65088" lon="6.2545">
+<name>Tour5 Anschluss1 Punkt40</name>
+      <sym>Flag, Red</sym>
+    </rtept>
+    <rtept lat="49.68648" lon="6.37554">
+<name>Tour5 Anschluss1 Punkt41</name>
+      <sym>Flag, Red</sym>
+    </rtept>
+    <rtept lat="49.67933" lon="6.44081">
+<name>Tour5 Anschluss1 Punkt42</name>
+      <sym>Flag, Red</sym>
+    </rtept>
+    <rtept lat="49.71327" lon="6.50191">
+<name>Tour5 Anschluss1 Punkt43</name>
+      <sym>Flag, Red</sym>
+    </rtept>
+    <rtept lat="49.76009" lon="6.5596">
+<name>Tour5 Anschluss1 Punkt44</name>
+      <sym>Flag, Red</sym>
+    </rtept>
+    <rtept lat="49.80963" lon="6.61614">
+<name>Tour5 Anschluss1 Punkt45</name>
+      <sym>Flag, Red</sym>
+    </rtept>
+    <rtept lat="49.85038" lon="6.62241">
+<name>Tour5 Anschluss1 Punkt46</name>
+      <sym>Flag, Red</sym>
+    </rtept>
+    <rtept lat="49.85286" lon="6.56901">
+<name>Tour5 Anschluss1 Punkt47</name>
+      <sym>Flag, Red</sym>
+    </rtept> 
+  </rte> 
+</gpx>
