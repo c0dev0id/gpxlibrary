@@ -53,11 +53,17 @@
                 log('================================================================================');
                 log('');
 
-                // Step 1: Initialize
-                log('STEP 1: Initialize Database');
+                // Step 1: Delete and reinitialize database (start fresh)
+                log('STEP 1: Delete and Reinitialize Database (Start Fresh)');
                 log('-'.repeat(80));
-                await Database.init();
-                log('✓ Database initialized');
+                try {
+                    await Database.deleteAndReinitialize();
+                    log('✓ Database deleted and reinitialized');
+                } catch (e) {
+                    // If database doesn't exist yet, just initialize
+                    await Database.init();
+                    log('✓ Database initialized');
+                }
                 log('');
 
                 // Step 2: Load file
