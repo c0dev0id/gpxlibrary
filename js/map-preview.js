@@ -218,7 +218,8 @@ const MapPreview = (function() {
             return;
         }
 
-        const colorIndex = keepExisting ? currentLayers.length % COLORS.length : 0;
+        // Use index_in_gpx for consistent colors across views
+        const colorIndex = keepExisting ? currentLayers.length % COLORS.length : routeDbData.index_in_gpx % COLORS.length;
 
         // Try to calculate routed path using routing service
         try {
@@ -325,7 +326,8 @@ const MapPreview = (function() {
         }
 
         const allPoints = [];
-        const colorIndex = keepExisting ? currentLayers.length % COLORS.length : 0;
+        // Use index_in_gpx for consistent colors across views
+        const colorIndex = keepExisting ? currentLayers.length % COLORS.length : trackDbData.index_in_gpx % COLORS.length;
 
         track.segments.forEach(segment => {
             if (segment.points && segment.points.length > 0) {

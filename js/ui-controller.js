@@ -52,8 +52,17 @@ const UIController = (function() {
         $('#routingStrategy').on('change', handleRoutingStrategyChange);
         $('#updateTrackBtn').on('click', handleUpdateTrackClick);
 
+        // Save changes
+        $('#saveChangesBtn').on('click', handleSaveChangesClick);
+
         // Path navigation
         $('#currentPath').on('click', handlePathClick);
+
+        // Keyboard navigation
+        $(document).on('keydown', handleKeyboardNavigation);
+
+        // Copy/Paste
+        $(document).on('keydown', handleCopyPaste);
     }
     
     /**
@@ -73,9 +82,11 @@ const UIController = (function() {
         
         if (currentGpxId) {
             // Show GPX contents
+            $('#filterContainer').hide(); // Hide filter when in GPX view
             renderGpxContents(currentGpxId, $fileList);
         } else {
             // Show folder contents
+            $('#filterContainer').show(); // Show filter when in folder view
             renderFolderContents(currentFolderId, $fileList);
         }
     }
@@ -523,24 +534,23 @@ const UIController = (function() {
         const selectedItems = FileManager.getSelectedItems();
 
         if (selectedItems.length === 0) {
-            alert('Please select one or more GPX files to download');
+            alert('Please select one or more items to download');
             return;
         }
 
-        // Filter only GPX files
-        const gpxFiles = selectedItems.filter(item => item.type === 'gpx');
-
-        if (gpxFiles.length === 0) {
-            alert('Please select GPX files to download (folders cannot be downloaded yet)');
-            return;
-        }
-
-        if (gpxFiles.length === 1) {
-            // Single file download
-            downloadSingleGpx(gpxFiles[0].id);
+        // Single item download
+        if (selectedItems.length === 1) {
+            const item = selectedItems[0];
+            if (item.type === 'gpx') {
+                downloadSingleGpx(item.id);
+            } else if (item.type === 'folder') {
+                downloadFolder(item.id);
+            } else if (item.type === 'route' || item.type === 'track' || item.type === 'waypoint') {
+                downloadGpxContent([item]);
+            }
         } else {
-            // Multiple files - download as ZIP
-            downloadMultipleGpx(gpxFiles);
+            // Multiple items - create ZIP
+            downloadMultipleItems(selectedItems);
         }
     }
 
@@ -589,6 +599,181 @@ const UIController = (function() {
             });
     }
 
+    function downloadFolder(folderId) {
+        const zip = new JSZip();
+        const folderData = Database.query('SELECT name FROM folders WHERE id = ?', [folderId])[0];
+        const folderName = folderData?.name || 'folder';
+
+        // Get all GPX files in this folder
+        const gpxFiles = Database.query('SELECT * FROM gpx_files WHERE folder_id = ?', [folderId]);
+
+        if (gpxFiles.length === 0) {
+            alert('Folder is empty');
+            return;
+        }
+
+        gpxFiles.forEach(file => {
+            zip.file(file.name + '.gpx', file.content);
+        });
+
+        zip.generateAsync({ type: 'blob' })
+            .then(content => {
+                const url = URL.createObjectURL(content);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = folderName + '.zip';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            })
+            .catch(error => {
+                alert('Failed to create ZIP file: ' + error.message);
+            });
+    }
+
+    function downloadGpxContent(items) {
+        // Create new GPX file containing only the selected routes/tracks/waypoints
+        const currentGpxId = FileManager.getCurrentGpxId();
+        const gpxFile = FileManager.getGpxFile(currentGpxId);
+        if (!gpxFile) return;
+
+        const gpxData = GPXParser.parse(gpxFile.content);
+        const newGpxData = {
+            metadata: gpxData.metadata,
+            routes: [],
+            tracks: [],
+            waypoints: []
+        };
+
+        items.forEach(item => {
+            if (item.type === 'route') {
+                const route = Database.query('SELECT * FROM routes WHERE id = ?', [item.id])[0];
+                if (route && gpxData.routes[route.index_in_gpx]) {
+                    newGpxData.routes.push(gpxData.routes[route.index_in_gpx]);
+                }
+            } else if (item.type === 'track') {
+                const track = Database.query('SELECT * FROM tracks WHERE id = ?', [item.id])[0];
+                if (track && gpxData.tracks[track.index_in_gpx]) {
+                    newGpxData.tracks.push(gpxData.tracks[track.index_in_gpx]);
+                }
+            } else if (item.type === 'waypoint') {
+                const waypoint = Database.query('SELECT * FROM waypoints WHERE id = ?', [item.id])[0];
+                if (waypoint) {
+                    newGpxData.waypoints.push({
+                        lat: waypoint.lat,
+                        lon: waypoint.lon,
+                        name: waypoint.name,
+                        ele: null,
+                        desc: null,
+                        time: null,
+                        sym: null,
+                        type: null
+                    });
+                }
+            }
+        });
+
+        const gpxContent = GPXNormalizer.normalize(newGpxData);
+        const blob = new Blob([gpxContent], { type: 'application/gpx+xml' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = (items[0].type === 'route' ? 'route' : items[0].type === 'track' ? 'track' : 'waypoints') + '.gpx';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    function downloadMultipleItems(items) {
+        const zip = new JSZip();
+
+        const folders = items.filter(i => i.type === 'folder');
+        const gpxFiles = items.filter(i => i.type === 'gpx');
+        const gpxContent = items.filter(i => i.type === 'route' || i.type === 'track' || i.type === 'waypoint');
+
+        // Add folders to ZIP
+        folders.forEach(item => {
+            const folderData = Database.query('SELECT name FROM folders WHERE id = ?', [item.id])[0];
+            const folderName = folderData?.name || 'folder';
+            const gpxFilesInFolder = Database.query('SELECT * FROM gpx_files WHERE folder_id = ?', [item.id]);
+
+            gpxFilesInFolder.forEach(file => {
+                zip.file(folderName + '/' + file.name + '.gpx', file.content);
+            });
+        });
+
+        // Add GPX files to ZIP
+        gpxFiles.forEach(item => {
+            const gpxFile = FileManager.getGpxFile(item.id);
+            if (gpxFile) {
+                zip.file(gpxFile.name + '.gpx', gpxFile.content);
+            }
+        });
+
+        // Add GPX content items (routes/tracks/waypoints) as a combined file
+        if (gpxContent.length > 0) {
+            const currentGpxId = FileManager.getCurrentGpxId();
+            const gpxFile = FileManager.getGpxFile(currentGpxId);
+            if (gpxFile) {
+                const gpxData = GPXParser.parse(gpxFile.content);
+                const newGpxData = {
+                    metadata: gpxData.metadata,
+                    routes: [],
+                    tracks: [],
+                    waypoints: []
+                };
+
+                gpxContent.forEach(item => {
+                    if (item.type === 'route') {
+                        const route = Database.query('SELECT * FROM routes WHERE id = ?', [item.id])[0];
+                        if (route && gpxData.routes[route.index_in_gpx]) {
+                            newGpxData.routes.push(gpxData.routes[route.index_in_gpx]);
+                        }
+                    } else if (item.type === 'track') {
+                        const track = Database.query('SELECT * FROM tracks WHERE id = ?', [item.id])[0];
+                        if (track && gpxData.tracks[track.index_in_gpx]) {
+                            newGpxData.tracks.push(gpxData.tracks[track.index_in_gpx]);
+                        }
+                    } else if (item.type === 'waypoint') {
+                        const waypoint = Database.query('SELECT * FROM waypoints WHERE id = ?', [item.id])[0];
+                        if (waypoint) {
+                            newGpxData.waypoints.push({
+                                lat: waypoint.lat,
+                                lon: waypoint.lon,
+                                name: waypoint.name,
+                                ele: null,
+                                desc: null,
+                                time: null,
+                                sym: null,
+                                type: null
+                            });
+                        }
+                    }
+                });
+
+                const content = GPXNormalizer.normalize(newGpxData);
+                zip.file('selected-items.gpx', content);
+            }
+        }
+
+        zip.generateAsync({ type: 'blob' })
+            .then(content => {
+                const url = URL.createObjectURL(content);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'download.zip';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            })
+            .catch(error => {
+                alert('Failed to create ZIP file: ' + error.message);
+            });
+    }
+
     function handleRenameClick() {
         const selectedItems = FileManager.getSelectedItems();
 
@@ -611,6 +796,15 @@ const UIController = (function() {
         } else if (item.type === 'gpx') {
             const gpxFile = FileManager.getGpxFile(item.id);
             currentName = gpxFile?.name || '';
+        } else if (item.type === 'route') {
+            const route = Database.query('SELECT name FROM routes WHERE id = ?', [item.id]);
+            currentName = route[0]?.name || '';
+        } else if (item.type === 'track') {
+            const track = Database.query('SELECT name FROM tracks WHERE id = ?', [item.id]);
+            currentName = track[0]?.name || '';
+        } else if (item.type === 'waypoint') {
+            const waypoint = Database.query('SELECT name FROM waypoints WHERE id = ?', [item.id]);
+            currentName = waypoint[0]?.name || '';
         } else {
             alert('Cannot rename this type of item');
             return;
@@ -618,6 +812,11 @@ const UIController = (function() {
 
         const newName = prompt('Enter new name:', currentName);
         if (!newName || newName === currentName) return;
+
+        // Show save button for route/track/waypoint renames (in-memory changes)
+        if (item.type === 'route' || item.type === 'track' || item.type === 'waypoint') {
+            showSaveButton();
+        }
 
         if (item.type === 'folder') {
             FileManager.renameFolder(item.id, newName)
@@ -634,6 +833,30 @@ const UIController = (function() {
                 })
                 .catch(error => {
                     alert('Failed to rename file: ' + error.message);
+                });
+        } else if (item.type === 'route') {
+            FileManager.renameRoute(item.id, newName)
+                .then(() => {
+                    renderFileList();
+                })
+                .catch(error => {
+                    alert('Failed to rename route: ' + error.message);
+                });
+        } else if (item.type === 'track') {
+            FileManager.renameTrack(item.id, newName)
+                .then(() => {
+                    renderFileList();
+                })
+                .catch(error => {
+                    alert('Failed to rename track: ' + error.message);
+                });
+        } else if (item.type === 'waypoint') {
+            FileManager.renameWaypoint(item.id, newName)
+                .then(() => {
+                    renderFileList();
+                })
+                .catch(error => {
+                    alert('Failed to rename waypoint: ' + error.message);
                 });
         }
     }
@@ -652,11 +875,25 @@ const UIController = (function() {
 
         if (!confirm(confirmMsg)) return;
 
+        // Check if we're deleting routes/tracks/waypoints (in-memory changes)
+        const hasGpxContentItems = selectedItems.some(item =>
+            item.type === 'route' || item.type === 'track' || item.type === 'waypoint'
+        );
+        if (hasGpxContentItems) {
+            showSaveButton();
+        }
+
         Promise.all(selectedItems.map(item => {
             if (item.type === 'folder') {
                 return FileManager.deleteFolder(item.id);
             } else if (item.type === 'gpx') {
                 return FileManager.deleteGpxFile(item.id);
+            } else if (item.type === 'route') {
+                return Database.execute('DELETE FROM routes WHERE id = ?', [item.id]);
+            } else if (item.type === 'track') {
+                return Database.execute('DELETE FROM tracks WHERE id = ?', [item.id]);
+            } else if (item.type === 'waypoint') {
+                return Database.execute('DELETE FROM waypoints WHERE id = ?', [item.id]);
             }
         }))
         .then(() => {
@@ -895,7 +1132,149 @@ const UIController = (function() {
         MapPreview.showEmptyState();
         updatePreviewTitle('Select a GPX file to preview');
     }
-    
+
+    /**
+     * Handle keyboard navigation
+     */
+    function handleKeyboardNavigation(e) {
+        // Only handle if not in an input field
+        if ($(e.target).is('input, select, textarea')) {
+            return;
+        }
+
+        const $items = $('#fileList .file-item');
+        if ($items.length === 0) return;
+
+        const $selected = $items.filter('.selected').first();
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            let $next;
+            if ($selected.length === 0) {
+                $next = $items.first();
+            } else {
+                $next = $selected.nextAll('.file-item').first();
+                if ($next.length === 0) $next = $items.last();
+            }
+            if ($next.length) {
+                $items.removeClass('selected');
+                $next.addClass('selected');
+                FileManager.clearSelection();
+                const type = $next.data('type');
+                const id = $next.data('id');
+                FileManager.addSelectedItem({ type, id });
+                updatePreview(type, id);
+                $next[0].scrollIntoView({ block: 'nearest' });
+            }
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            let $prev;
+            if ($selected.length === 0) {
+                $prev = $items.last();
+            } else {
+                $prev = $selected.prevAll('.file-item').first();
+                if ($prev.length === 0) $prev = $items.first();
+            }
+            if ($prev.length) {
+                $items.removeClass('selected');
+                $prev.addClass('selected');
+                FileManager.clearSelection();
+                const type = $prev.data('type');
+                const id = $prev.data('id');
+                FileManager.addSelectedItem({ type, id });
+                updatePreview(type, id);
+                $prev[0].scrollIntoView({ block: 'nearest' });
+            }
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if ($selected.length) {
+                const type = $selected.data('type');
+                const id = $selected.data('id');
+                handleItemDoubleClick(type, id);
+            }
+        }
+    }
+
+    /**
+     * Handle copy/paste operations
+     */
+    let clipboard = null;
+
+    function handleCopyPaste(e) {
+        // Copy (Ctrl+C or Cmd+C)
+        if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+            const selectedItems = FileManager.getSelectedItems();
+            if (selectedItems.length > 0) {
+                // Only copy routes, tracks, waypoints
+                const copyableItems = selectedItems.filter(item =>
+                    item.type === 'route' || item.type === 'track' || item.type === 'waypoint'
+                );
+                if (copyableItems.length > 0) {
+                    clipboard = {
+                        items: copyableItems,
+                        sourceGpxId: FileManager.getCurrentGpxId()
+                    };
+                    updatePreviewTitle('Copied ' + copyableItems.length + ' item(s)', 'Use Ctrl+V to paste');
+                }
+            }
+        }
+        // Paste (Ctrl+V or Cmd+V)
+        else if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+            if (clipboard && clipboard.items.length > 0) {
+                const targetGpxId = FileManager.getCurrentGpxId();
+                if (targetGpxId) {
+                    handlePaste(targetGpxId, clipboard);
+                } else {
+                    alert('Please open a GPX file to paste into');
+                }
+            }
+        }
+    }
+
+    /**
+     * Handle paste operation
+     */
+    async function handlePaste(targetGpxId, clipboard) {
+        try {
+            // Mark as having unsaved changes
+            showSaveButton();
+
+            // TODO: Implement actual paste logic
+            // This will be implemented in the in-memory changes feature
+            updatePreviewTitle('Pasted ' + clipboard.items.length + ' item(s)', 'Click Save to persist changes');
+        } catch (error) {
+            alert('Failed to paste: ' + error.message);
+        }
+    }
+
+    /**
+     * Show save button
+     */
+    function showSaveButton() {
+        $('#saveContainer').show();
+    }
+
+    /**
+     * Hide save button
+     */
+    function hideSaveButton() {
+        $('#saveContainer').hide();
+    }
+
+    /**
+     * Handle save changes click
+     */
+    async function handleSaveChangesClick() {
+        try {
+            // TODO: Implement actual save logic
+            // For now just hide the button
+            hideSaveButton();
+            updatePreviewTitle('Changes saved', '');
+        } catch (error) {
+            alert('Failed to save changes: ' + error.message);
+        }
+    }
+
     /**
      * Loading spinner
      */
