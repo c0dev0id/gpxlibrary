@@ -34,13 +34,16 @@ const UIController = (function() {
         $('#exportDbBtn').on('click', handleExportDbClick);
         $('#importDbBtn').on('click', handleImportDbClick);
         $('#dbFileInput').on('change', handleDbFileSelect);
-        
+
+        // Developer tools
+        $('#deleteDbBtn').on('click', handleDeleteDbClick);
+
         // Filter inputs
         $('#filterName').on('input', handleFilterChange);
         $('#filterLengthMin, #filterLengthMax').on('input', handleFilterChange);
         $('#filterWaypointsMin, #filterWaypointsMax').on('input', handleFilterChange);
         $('#filterTimeMin, #filterTimeMax').on('input', handleFilterChange);
-        
+
         // Path navigation
         $('#currentPath').on('click', handlePathClick);
     }
@@ -471,7 +474,34 @@ const UIController = (function() {
             $('#dbFileInput').val('');
         }
     }
-    
+
+    async function handleDeleteDbClick() {
+        if (!confirm('Delete all data and reinitialize database? This cannot be undone!')) {
+            return;
+        }
+
+        showLoadingSpinner();
+
+        try {
+            await Database.deleteAndReinitialize();
+
+            // Reset state
+            FileManager.setCurrentFolderId(null);
+            FileManager.setCurrentGpxId(null);
+            FileManager.clearSelection();
+
+            renderFileList();
+            MapPreview.showEmptyState();
+            updatePreviewTitle('Select a GPX file to preview');
+
+            alert('Database deleted and reinitialized successfully!');
+        } catch (error) {
+            alert('Delete failed: ' + error.message);
+        } finally {
+            hideLoadingSpinner();
+        }
+    }
+
     function handleFilterChange() {
         filters.name = $('#filterName').val();
         filters.lengthMin = parseFloat($('#filterLengthMin').val()) || null;

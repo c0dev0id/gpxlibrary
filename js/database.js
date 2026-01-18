@@ -312,7 +312,43 @@ const Database = (function() {
     function rollback() {
         db.run('ROLLBACK');
     }
-    
+
+    /**
+     * Delete database and reinitialize (for development)
+     */
+    async function deleteAndReinitialize() {
+        return new Promise((resolve, reject) => {
+            // Close current database
+            if (db) {
+                db.close();
+                db = null;
+            }
+
+            // Delete IndexedDB
+            const request = indexedDB.deleteDatabase(DB_NAME);
+
+            request.onsuccess = async () => {
+                console.log('Database deleted successfully');
+                try {
+                    // Reinitialize
+                    await init();
+                    resolve();
+                } catch (error) {
+                    reject(error);
+                }
+            };
+
+            request.onerror = () => {
+                reject(new Error('Failed to delete database'));
+            };
+
+            request.onblocked = () => {
+                console.warn('Database deletion blocked - close all tabs using this database');
+                reject(new Error('Database deletion blocked'));
+            };
+        });
+    }
+
     // Public API
     return {
         init,
@@ -324,6 +360,7 @@ const Database = (function() {
         saveToIndexedDB,
         beginTransaction,
         commit,
-        rollback
+        rollback,
+        deleteAndReinitialize
     };
 })();
