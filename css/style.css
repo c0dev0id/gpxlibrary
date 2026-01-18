@@ -104,9 +104,23 @@ html, body {
 }
 
 #selectionCount {
-    display: block;
+    display: inline-block;
     font-size: 0.85rem;
     color: #6c757d;
+}
+
+.action-toolbar .vr {
+    height: 24px;
+    opacity: 0.2;
+}
+
+.action-toolbar .form-check-label {
+    cursor: pointer;
+    user-select: none;
+}
+
+.action-toolbar .form-check-input {
+    cursor: pointer;
 }
 
 /* Filter Panel */

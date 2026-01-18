@@ -41,6 +41,11 @@ const UIController = (function() {
         // File actions
         $('#renameBtn').on('click', handleRenameClick);
         $('#deleteBtn').on('click', handleDeleteClick);
+        $('#copyBtn').on('click', handleCopyClick);
+        $('#pasteBtn').on('click', handlePasteClick);
+
+        // Multi-select mode
+        $('#multiSelectMode').on('change', handleMultiSelectModeChange);
 
         // Filter inputs
         $('#filterName').on('input', handleFilterChange);
@@ -353,12 +358,30 @@ const UIController = (function() {
         const selectedItems = FileManager.getSelectedItems();
         const $toolbar = $('#actionToolbar');
         const $selectionCount = $('#selectionCount');
+        const $pasteBtn = $('#pasteBtn');
 
-        if (selectedItems.length > 0) {
+        // Show toolbar if items are selected OR if clipboard has content
+        const hasClipboard = clipboard && clipboard.items && clipboard.items.length > 0;
+
+        if (selectedItems.length > 0 || hasClipboard) {
             $toolbar.show();
-            $selectionCount.text(selectedItems.length === 1 ? '1 item selected' : `${selectedItems.length} items selected`);
+            $selectionCount.text(selectedItems.length === 1 ? '1 item selected' :
+                                 selectedItems.length > 1 ? `${selectedItems.length} items selected` :
+                                 '0 items selected');
         } else {
             $toolbar.hide();
+        }
+
+        // Enable paste button only if clipboard has content
+        $pasteBtn.prop('disabled', !hasClipboard);
+
+        // Update paste button tooltip based on clipboard state
+        if (hasClipboard) {
+            const itemCount = clipboard.items.length;
+            const itemText = itemCount === 1 ? '1 item' : `${itemCount} items`;
+            $pasteBtn.attr('title', `Paste ${itemText} (Ctrl+V)`);
+        } else {
+            $pasteBtn.attr('title', 'Paste (Ctrl+V)');
         }
     }
 
@@ -384,8 +407,9 @@ const UIController = (function() {
     function handleItemClick(e, type, id, $item) {
         const selectedItems = FileManager.getSelectedItems();
         const isSelected = selectedItems.some(i => i.type === type && i.id === id);
+        const multiSelectMode = $('#multiSelectMode').is(':checked');
 
-        if (e.ctrlKey || e.metaKey) {
+        if (e.ctrlKey || e.metaKey || multiSelectMode) {
             // Multi-select
             if (isSelected) {
                 FileManager.removeSelectedItem({ type, id });
@@ -1356,65 +1380,114 @@ const UIController = (function() {
      */
     let clipboard = null;
 
+    /**
+     * Handle copy button click
+     */
+    function handleCopyClick() {
+        performCopy();
+    }
+
+    /**
+     * Handle paste button click
+     */
+    function handlePasteClick() {
+        performPaste();
+    }
+
+    /**
+     * Handle multi-select mode checkbox change
+     */
+    function handleMultiSelectModeChange() {
+        const isChecked = $('#multiSelectMode').is(':checked');
+        if (!isChecked) {
+            // When turning off multi-select mode, keep current selection but switch to single-select behavior
+            const selectedItems = FileManager.getSelectedItems();
+            if (selectedItems.length > 1) {
+                // Keep only the first selected item
+                FileManager.clearSelection();
+                $('.file-item').removeClass('selected');
+                FileManager.addSelectedItem(selectedItems[0]);
+                $(`.file-item[data-type="${selectedItems[0].type}"][data-id="${selectedItems[0].id}"]`).addClass('selected');
+                updatePreview(selectedItems[0].type, selectedItems[0].id);
+                updateActionToolbar();
+            }
+        }
+    }
+
+    /**
+     * Perform copy operation
+     */
+    function performCopy() {
+        const selectedItems = FileManager.getSelectedItems();
+        if (selectedItems.length > 0) {
+            // Only copy routes, tracks, waypoints
+            const copyableItems = selectedItems.filter(item =>
+                item.type === 'route' || item.type === 'track' || item.type === 'waypoint'
+            );
+            if (copyableItems.length > 0) {
+                // Store the actual data, not just references
+                const sourceGpxId = FileManager.getCurrentGpxId();
+                const sourceGpx = FileManager.getGpxFile(sourceGpxId);
+                const sourceGpxData = GPXParser.parse(sourceGpx.content);
+
+                clipboard = {
+                    items: copyableItems,
+                    sourceGpxId: sourceGpxId,
+                    data: {
+                        routes: [],
+                        tracks: [],
+                        waypoints: []
+                    }
+                };
+
+                // Extract the actual data for each copied item
+                copyableItems.forEach(item => {
+                    if (item.type === 'route') {
+                        const route = Database.query('SELECT * FROM routes WHERE id = ?', [item.id])[0];
+                        if (route && sourceGpxData.routes[route.index_in_gpx]) {
+                            clipboard.data.routes.push(sourceGpxData.routes[route.index_in_gpx]);
+                        }
+                    } else if (item.type === 'track') {
+                        const track = Database.query('SELECT * FROM tracks WHERE id = ?', [item.id])[0];
+                        if (track && sourceGpxData.tracks[track.index_in_gpx]) {
+                            clipboard.data.tracks.push(sourceGpxData.tracks[track.index_in_gpx]);
+                        }
+                    } else if (item.type === 'waypoint') {
+                        const waypoint = Database.query('SELECT * FROM waypoints WHERE id = ?', [item.id])[0];
+                        if (waypoint && sourceGpxData.waypoints[waypoint.index_in_gpx]) {
+                            clipboard.data.waypoints.push(sourceGpxData.waypoints[waypoint.index_in_gpx]);
+                        }
+                    }
+                });
+
+                updatePreviewTitle('Copied ' + copyableItems.length + ' item(s)', 'Use Ctrl+V or click Paste to paste');
+                updateActionToolbar(); // Update to enable paste button
+            }
+        }
+    }
+
+    /**
+     * Perform paste operation
+     */
+    function performPaste() {
+        if (clipboard && clipboard.items.length > 0) {
+            const targetGpxId = FileManager.getCurrentGpxId();
+            if (targetGpxId) {
+                handlePasteIntoGpx(targetGpxId, clipboard);
+            } else {
+                handlePasteAsNewGpx(clipboard);
+            }
+        }
+    }
+
     function handleCopyPaste(e) {
         // Copy (Ctrl+C or Cmd+C)
         if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
-            const selectedItems = FileManager.getSelectedItems();
-            if (selectedItems.length > 0) {
-                // Only copy routes, tracks, waypoints
-                const copyableItems = selectedItems.filter(item =>
-                    item.type === 'route' || item.type === 'track' || item.type === 'waypoint'
-                );
-                if (copyableItems.length > 0) {
-                    // Store the actual data, not just references
-                    const sourceGpxId = FileManager.getCurrentGpxId();
-                    const sourceGpx = FileManager.getGpxFile(sourceGpxId);
-                    const sourceGpxData = GPXParser.parse(sourceGpx.content);
-
-                    clipboard = {
-                        items: copyableItems,
-                        sourceGpxId: sourceGpxId,
-                        data: {
-                            routes: [],
-                            tracks: [],
-                            waypoints: []
-                        }
-                    };
-
-                    // Extract the actual data for each copied item
-                    copyableItems.forEach(item => {
-                        if (item.type === 'route') {
-                            const route = Database.query('SELECT * FROM routes WHERE id = ?', [item.id])[0];
-                            if (route && sourceGpxData.routes[route.index_in_gpx]) {
-                                clipboard.data.routes.push(sourceGpxData.routes[route.index_in_gpx]);
-                            }
-                        } else if (item.type === 'track') {
-                            const track = Database.query('SELECT * FROM tracks WHERE id = ?', [item.id])[0];
-                            if (track && sourceGpxData.tracks[track.index_in_gpx]) {
-                                clipboard.data.tracks.push(sourceGpxData.tracks[track.index_in_gpx]);
-                            }
-                        } else if (item.type === 'waypoint') {
-                            const waypoint = Database.query('SELECT * FROM waypoints WHERE id = ?', [item.id])[0];
-                            if (waypoint && sourceGpxData.waypoints[waypoint.index_in_gpx]) {
-                                clipboard.data.waypoints.push(sourceGpxData.waypoints[waypoint.index_in_gpx]);
-                            }
-                        }
-                    });
-
-                    updatePreviewTitle('Copied ' + copyableItems.length + ' item(s)', 'Use Ctrl+V to paste');
-                }
-            }
+            performCopy();
         }
         // Paste (Ctrl+V or Cmd+V)
         else if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
-            if (clipboard && clipboard.items.length > 0) {
-                const targetGpxId = FileManager.getCurrentGpxId();
-                if (targetGpxId) {
-                    handlePasteIntoGpx(targetGpxId, clipboard);
-                } else {
-                    handlePasteAsNewGpx(clipboard);
-                }
-            }
+            performPaste();
         }
     }
 
