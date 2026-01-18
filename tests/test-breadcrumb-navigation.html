@@ -274,17 +274,18 @@
 
         async function initialize() {
             try {
-                console.log('Initializing database...');
-                await Database.init();
+                console.log('Initializing TEST database...');
+                // Use a separate test database to avoid polluting production data
+                await Database.init('gpx_library_test_breadcrumb_navigation');
 
                 console.log('Initializing UI controller...');
                 UIController.init();
 
                 initialized = true;
-                console.log('Initialization complete');
+                console.log('Initialization complete (using TEST database)');
 
                 document.getElementById('overallStatus').innerHTML =
-                    '<span class="status" style="background-color: #17a2b8; color: white;">Ready to Run</span>';
+                    '<span class="status" style="background-color: #17a2b8; color: white;">Ready to Run (TEST DB)</span>';
                 document.getElementById('runTestsBtn').disabled = false;
             } catch (error) {
                 console.error('Initialization failed:', error);
