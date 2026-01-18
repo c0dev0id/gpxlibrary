@@ -6,12 +6,15 @@
 2. [Getting Started](#getting-started)
 3. [Uploading Routes](#uploading-routes)
 4. [Organizing Routes](#organizing-routes)
-5. [Viewing Routes](#viewing-routes)
-6. [Filtering Routes](#filtering-routes)
-7. [Managing Your Library](#managing-your-library)
-8. [Backup and Restore](#backup-and-restore)
-9. [Tips and Best Practices](#tips-and-best-practices)
-10. [Troubleshooting](#troubleshooting)
+5. [Viewing and Navigating](#viewing-and-navigating)
+6. [Working with Routes, Tracks, and Waypoints](#working-with-routes-tracks-and-waypoints)
+7. [Downloading and Exporting](#downloading-and-exporting)
+8. [Keyboard Shortcuts](#keyboard-shortcuts)
+9. [Filtering Routes](#filtering-routes)
+10. [Managing Your Library](#managing-your-library)
+11. [Backup and Restore](#backup-and-restore)
+12. [Tips and Best Practices](#tips-and-best-practices)
+13. [Troubleshooting](#troubleshooting)
 
 ## Introduction
 
@@ -21,8 +24,12 @@ GPX Library is a web-based route management tool designed specifically for motor
 
 - Store up to 2,500 GPX files (each up to 20MB)
 - Organize routes in folders
-- Preview routes on OpenStreetMap
+- Preview routes on OpenStreetMap with road routing
 - View trip length, waypoint count, and estimated riding time
+- Navigate inside GPX files to view individual routes, tracks, and waypoints
+- Copy and paste routes between GPX files
+- Download individual routes, tracks, or entire folders
+- Keyboard navigation for efficient workflow
 - Filter routes by name, length, waypoints, and time
 - Export and import your entire route library
 
@@ -44,14 +51,17 @@ The application has two main panels:
 
 **Left Panel - Route Library**
 - Action buttons (Upload, Download, New Folder)
+- File actions (Rename, Delete)
 - Database export/import buttons
-- Current folder path
+- Current folder path (clickable for navigation)
 - Filter controls
 - File and folder list
 
 **Right Panel - Map Preview**
 - Route name and metadata
+- Routing strategy selector (for routes)
 - Interactive map showing selected route
+- Save button (appears when changes are made)
 
 ## Uploading Routes
 
@@ -77,6 +87,7 @@ The application will:
 - Parse your GPX files
 - Convert GPX 1.1 files to GPX 1.0 format
 - Extract routes, tracks, and waypoints
+- Generate tracks from routes for GPS compatibility
 - Calculate trip length and estimated riding time
 - Store everything in the local database
 
@@ -92,10 +103,11 @@ The application will:
 ### Navigating Folders
 
 - **Double-click a folder** to open it
-- **Click the path** at the top (e.g., `/`) to return to the root level
+- **Double-click ".."** to go up one level
+- **Click the path** at the top (e.g., `/Alps/Day 1`) to jump to any parent folder
 - Folders can be nested within other folders
 
-### Folder Structure
+### Folder Structure Example
 
 ```
 / (root)
@@ -108,42 +120,162 @@ The application will:
     └── Rhine Valley.gpx
 ```
 
-## Viewing Routes
+## Viewing and Navigating
 
 ### Viewing a GPX File
 
 1. **Single-click** a GPX file in the list
 2. The map will show all routes, tracks, and waypoints
 3. Metadata appears above the map
+4. Different routes/tracks appear in different colors
 
-### Viewing Inside a GPX File
+### Navigating Inside a GPX File
 
-1. **Double-click** a GPX file
-2. The list will show the contents:
-   - **Routes** section
-   - **Tracks** section
-   - **Waypoints** section
-3. Click any item to preview it on the map
+1. **Double-click** a GPX file to open its contents
+2. The list will show:
+   - **Routes** section (if any)
+   - **Tracks** section (if any)
+   - **Waypoints** section (if any)
+3. **Single-click** any item to preview it on the map
+4. **Double-click ".."** to go back to the folder view
+5. The filter is hidden when viewing GPX contents (not needed)
 
 ### Map Features
 
-- **Different Colors**: Each route/track appears in a different color
+- **Different Colors**: Each route/track appears in a different color (consistent across all views)
+- **Road Routing**: Routes automatically calculate road paths between waypoints
 - **Semi-Transparent Lines**: 30% opacity lets you see overlapping paths
 - **Waypoint Markers**: Red markers with labels show waypoint locations
 - **Auto-Zoom**: Map automatically adjusts to show the entire route
 - **Interactive**: Click and drag to pan, scroll to zoom
 
-### Understanding Metadata
+### Routing Strategies
 
-When you select a GPX file, you'll see:
+When viewing a route, you can select a routing strategy:
 
-- **Length**: Total distance in kilometers
-- **Waypoints**: Number of waypoints
-- **Riding Time**: Estimated time at average motorcycle speed (50 km/h)
+- **Road (Fast)**: Fastest route using any suitable road
+- **Road - Avoid Motorway**: Avoids motorways/highways
+- **Curvy (Scenic)**: Prefer winding scenic roads
+- **Prefer Unpaved**: Include unpaved/gravel roads
+
+**Note**: The public OSRM routing service uses the same profile for all strategies. For full functionality, you would need a self-hosted routing service.
+
+### Update Track Button
+
+After changing the routing strategy, you can click **Update Track** to regenerate the track with the new calculated route. This updates the auto-generated track that many GPS devices use.
+
+## Working with Routes, Tracks, and Waypoints
+
+### Renaming Items
+
+1. **Single-click** to select a route, track, or waypoint
+2. Click the **Rename** button
+3. Enter the new name
+4. Press OK
+
+You can rename:
+- Folders
+- GPX files
+- Individual routes
+- Individual tracks
+- Individual waypoints
+
+### Deleting Items
+
+1. **Single-click** to select one or more items
+2. Click the **Delete** button
+3. Confirm the deletion
+
+You can delete:
+- Folders (including all contents)
+- GPX files
+- Individual routes
+- Individual tracks
+- Individual waypoints
+
+**Warning**: Deleting a folder or GPX file will delete all contents. This cannot be undone!
+
+### Copy and Paste
+
+You can copy routes, tracks, and waypoints between GPX files:
+
+**To Copy:**
+1. Open a GPX file (double-click it)
+2. Select one or more routes/tracks/waypoints
+3. Press **Ctrl+C** (or Cmd+C on Mac)
+4. A message confirms the items were copied
+
+**To Paste into existing GPX:**
+1. Open the target GPX file (double-click it)
+2. Press **Ctrl+V** (or Cmd+V on Mac)
+3. The items are added to the GPX file
+4. The list refreshes automatically
+5. The first pasted item is selected and displayed
+
+**To Paste as new GPX:**
+1. Navigate to the folder where you want the new GPX
+2. Press **Ctrl+V** (or Cmd+V on Mac)
+3. Enter a name for the new GPX file
+4. The new GPX is created with the pasted items
+5. The file opens automatically showing the pasted content
+
+## Downloading and Exporting
+
+### Download Single GPX File
+
+1. **Single-click** a GPX file
+2. Click the **Download** button
+3. The file downloads with its original name
+
+### Download Folder as ZIP
+
+1. **Single-click** a folder
+2. Click the **Download** button
+3. A ZIP file containing all GPX files in that folder will download
+
+### Download Individual Routes/Tracks/Waypoints
+
+1. Open a GPX file (double-click it)
+2. **Single-click** a route, track, or waypoint
+3. Click the **Download** button
+4. A GPX file containing only that item will download
+5. The downloaded file uses the item's name
+
+### Download Multiple Items
+
+1. Select multiple items using Ctrl+Click
+2. Click the **Download** button
+3. A ZIP file containing all selected items will download
+
+Mixed selections (GPX files + folders + routes) are intelligently packaged:
+- GPX files are included directly
+- Folders are flattened (all GPX files extracted)
+- Routes/tracks/waypoints are extracted as individual GPX files
+
+## Keyboard Shortcuts
+
+### Navigation
+
+- **Arrow Up/Down**: Move selection up or down in the list
+- **Enter**: Open selected folder or GPX file (same as double-click)
+- **Backspace**: Go up one level (when at folder level)
+
+### Editing
+
+- **Ctrl+C** (Cmd+C): Copy selected routes/tracks/waypoints
+- **Ctrl+V** (Cmd+V): Paste copied items
+- **Delete**: Delete selected items (after confirmation)
+- **F2**: Rename selected item
+
+### Selection
+
+- **Click**: Select single item
+- **Ctrl+Click**: Add/remove item from selection
+- **Shift+Click**: Select range (not yet implemented)
 
 ## Filtering Routes
 
-Use the filter controls to find specific routes:
+Use the filter controls to find specific routes (only available at folder level):
 
 ### Filter by Name
 
@@ -177,18 +309,32 @@ This shows only Alpine routes between 150-250 km taking 3-5 hours.
 
 ## Managing Your Library
 
-### Selecting Items
-
-- **Single-click** an item to select it
-- **Ctrl+Click** (Cmd+Click on Mac) to select multiple items
-- Selected items are highlighted in blue
-
 ### Multi-Selection
+
+You can select multiple items:
+
+- **Ctrl+Click** to add items to selection
+- **Click** on already selected item to deselect
+- Selected items are highlighted in blue
 
 You can select:
 - Multiple folders
 - Multiple GPX files
 - Multiple routes/tracks/waypoints (when inside a GPX file)
+- Mixed selections (folders + GPX files)
+
+### Understanding Metadata
+
+When you select a GPX file, you'll see:
+
+- **Length**: Total distance in kilometers
+- **Waypoints**: Number of waypoints
+- **Riding Time**: Estimated time at average motorcycle speed (50 km/h)
+
+When you select a route or track:
+
+- **Length**: Distance of that specific route/track
+- **Riding Time**: Estimated time for that route/track
 
 ## Backup and Restore
 
@@ -214,6 +360,8 @@ Your route library is stored in your browser's local storage. It will be deleted
 3. Confirm the import
 4. Your entire library will be restored
 
+**Warning**: Importing will replace your current library. Export first if you want to keep current data!
+
 ### Transfer Between Devices
 
 Use export/import to move your library:
@@ -235,6 +383,14 @@ Use export/import to move your library:
 - Upload related routes to the same folder
 - Create a folder structure before uploading
 - Use filters to find routes quickly
+- Use copy/paste to build custom tours from existing routes
+
+### Keyboard Efficiency
+
+- Use Arrow keys to quickly browse routes
+- Use Enter to open files/folders
+- Use Ctrl+C/V to quickly duplicate and modify routes
+- Learn the keyboard shortcuts for faster workflow
 
 ### Backups
 
@@ -248,6 +404,7 @@ Use export/import to move your library:
 - The application can handle 2,500 files efficiently
 - Larger files (10-20MB) take longer to process
 - Close other browser tabs if upload is slow
+- Use folders to organize - don't put all files in root
 
 ## Troubleshooting
 
@@ -257,7 +414,7 @@ Use export/import to move your library:
 - Check file is .gpx format
 - Verify file size is under 20MB
 - Ensure file is valid GPX format
-- Check browser console for errors
+- Check browser console for errors (F12)
 
 **Problem**: Upload is very slow
 - Large files take longer to process
@@ -270,11 +427,29 @@ Use export/import to move your library:
 - Try single-clicking the file again
 - Check if the GPX file contains valid coordinates
 - Refresh the browser page
+- Check browser console for errors
+
+**Problem**: Routes show as straight lines
+- The routing service may be unavailable
+- Try refreshing the page
+- Check your internet connection (routing requires network access)
 
 **Problem**: Routes look wrong
 - The application converts GPX 1.1 to GPX 1.0
 - Some route details may be simplified
 - Waypoints are preserved
+
+### Copy/Paste Issues
+
+**Problem**: Paste doesn't work
+- Make sure you copied routes/tracks/waypoints (not folders or GPX files)
+- Copied items must be from inside a GPX file
+- Try copying again
+
+**Problem**: Pasted items don't appear
+- The list should refresh automatically
+- Try clicking somewhere else and back
+- Refresh the browser page if needed
 
 ### Database Issues
 
@@ -296,12 +471,18 @@ Use export/import to move your library:
 - Check browser version (Chrome 90+, Firefox 88+, Safari 14+, Edge 90+)
 - Check JavaScript is enabled
 
+**Problem**: Keyboard shortcuts don't work
+- Make sure you're not typing in an input field
+- Click somewhere in the file list first
+- Try refreshing the page
+
 ### Storage Limits
 
 **Problem**: Can't upload more files
 - Browser storage limits vary (50MB-several GB)
 - Export and delete old routes
 - Consider organizing files more efficiently
+- Use folders to group related routes
 
 ## Getting Help
 
@@ -316,7 +497,7 @@ If you encounter issues not covered here:
 ## Privacy and Data
 
 - All data is stored locally in your browser
-- No data is sent to any server
+- No data is sent to any server (except routing requests to OSRM)
 - Your routes remain completely private
 - No account or login required
 - No tracking or analytics
