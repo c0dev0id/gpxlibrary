@@ -28,6 +28,7 @@ const Database = (function() {
             if (savedDb) {
                 db = new SQL.Database(savedDb);
                 console.log('Database loaded from IndexedDB');
+                await runMigrations();
             } else {
                 db = new SQL.Database();
                 await createSchema();
@@ -76,18 +77,20 @@ const Database = (function() {
             CREATE TABLE routes (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 gpx_file_id INTEGER NOT NULL,
+                index_in_gpx INTEGER NOT NULL,
                 name TEXT,
                 length_km REAL DEFAULT 0,
                 riding_time_hours REAL DEFAULT 0,
                 FOREIGN KEY (gpx_file_id) REFERENCES gpx_files(id) ON DELETE CASCADE
             )
         `);
-        
+
         // Tracks table (for within GPX files)
         db.run(`
             CREATE TABLE tracks (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 gpx_file_id INTEGER NOT NULL,
+                index_in_gpx INTEGER NOT NULL,
                 name TEXT,
                 length_km REAL DEFAULT 0,
                 riding_time_hours REAL DEFAULT 0,
@@ -116,7 +119,37 @@ const Database = (function() {
         
         await saveToIndexedDB();
     }
-    
+
+    /**
+     * Run database migrations
+     */
+    async function runMigrations() {
+        try {
+            // Check if index_in_gpx column exists in routes table
+            const routesColumns = db.exec("PRAGMA table_info(routes)");
+            const hasRoutesIndex = routesColumns[0]?.values?.some(row => row[1] === 'index_in_gpx');
+
+            if (!hasRoutesIndex) {
+                console.log('Running migration: adding index_in_gpx to routes table');
+                db.run('ALTER TABLE routes ADD COLUMN index_in_gpx INTEGER DEFAULT 0');
+            }
+
+            // Check if index_in_gpx column exists in tracks table
+            const tracksColumns = db.exec("PRAGMA table_info(tracks)");
+            const hasTracksIndex = tracksColumns[0]?.values?.some(row => row[1] === 'index_in_gpx');
+
+            if (!hasTracksIndex) {
+                console.log('Running migration: adding index_in_gpx to tracks table');
+                db.run('ALTER TABLE tracks ADD COLUMN index_in_gpx INTEGER DEFAULT 0');
+            }
+
+            await saveToIndexedDB();
+        } catch (error) {
+            console.error('Migration error:', error);
+            throw error;
+        }
+    }
+
     /**
      * Save database to IndexedDB
      */

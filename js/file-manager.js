@@ -138,27 +138,29 @@ const FileManager = (function() {
                 
                 // Store routes
                 if (gpxData.routes) {
-                    for (const route of gpxData.routes) {
+                    for (let i = 0; i < gpxData.routes.length; i++) {
+                        const route = gpxData.routes[i];
                         const routeLength = calculateRouteLength(route.points);
                         const routeTime = routeLength / 50; // Simple estimation
                         await Database.execute(
-                            'INSERT INTO routes (gpx_file_id, name, length_km, riding_time_hours) VALUES (?, ?, ?, ?)',
-                            [gpxId, route.name || 'Unnamed Route', routeLength, routeTime]
+                            'INSERT INTO routes (gpx_file_id, index_in_gpx, name, length_km, riding_time_hours) VALUES (?, ?, ?, ?, ?)',
+                            [gpxId, i, route.name || 'Unnamed Route', routeLength, routeTime]
                         );
                     }
                 }
                 
                 // Store tracks
                 if (gpxData.tracks) {
-                    for (const track of gpxData.tracks) {
+                    for (let i = 0; i < gpxData.tracks.length; i++) {
+                        const track = gpxData.tracks[i];
                         let trackLength = 0;
                         track.segments.forEach(segment => {
                             trackLength += calculateRouteLength(segment.points);
                         });
                         const trackTime = trackLength / 50; // Simple estimation
                         await Database.execute(
-                            'INSERT INTO tracks (gpx_file_id, name, length_km, riding_time_hours) VALUES (?, ?, ?, ?)',
-                            [gpxId, track.name || 'Unnamed Track', trackLength, trackTime]
+                            'INSERT INTO tracks (gpx_file_id, index_in_gpx, name, length_km, riding_time_hours) VALUES (?, ?, ?, ?, ?)',
+                            [gpxId, i, track.name || 'Unnamed Track', trackLength, trackTime]
                         );
                     }
                 }

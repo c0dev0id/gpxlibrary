@@ -174,32 +174,32 @@ const MapPreview = (function() {
      */
     function displayRoute(gpxId, routeId) {
         clearLayers();
-        
+
         const gpxFile = FileManager.getGpxFile(gpxId);
         if (!gpxFile) return;
-        
+
         const gpxData = GPXParser.parse(gpxFile.content);
-        
+
         // Find the specific route
         const routes = Database.query('SELECT * FROM routes WHERE id = ?', [routeId]);
         if (routes.length === 0) return;
-        
+
         const routeDbData = routes[0];
-        
-        // Find route in parsed GPX data
-        const route = gpxData.routes.find(r => r.name === routeDbData.name);
+
+        // Find route in parsed GPX data by index
+        const route = gpxData.routes[routeDbData.index_in_gpx];
         if (!route || route.points.length === 0) return;
-        
+
         const latlngs = route.points.map(pt => [pt.lat, pt.lon]);
-        
+
         const polyline = L.polyline(latlngs, {
             color: COLORS[0],
             weight: 6,
             opacity: 0.5
         }).addTo(map);
-        
+
         currentLayers.push(polyline);
-        
+
         // Fit map to route
         map.fitBounds(polyline.getBounds(), { padding: [50, 50] });
     }
@@ -209,41 +209,41 @@ const MapPreview = (function() {
      */
     function displayTrack(gpxId, trackId) {
         clearLayers();
-        
+
         const gpxFile = FileManager.getGpxFile(gpxId);
         if (!gpxFile) return;
-        
+
         const gpxData = GPXParser.parse(gpxFile.content);
-        
+
         // Find the specific track
         const tracks = Database.query('SELECT * FROM tracks WHERE id = ?', [trackId]);
         if (tracks.length === 0) return;
-        
+
         const trackDbData = tracks[0];
-        
-        // Find track in parsed GPX data
-        const track = gpxData.tracks.find(t => t.name === trackDbData.name);
+
+        // Find track in parsed GPX data by index
+        const track = gpxData.tracks[trackDbData.index_in_gpx];
         if (!track) return;
-        
+
         const allPoints = [];
-        
+
         track.segments.forEach(segment => {
             if (segment.points.length > 0) {
                 const latlngs = segment.points.map(pt => {
                     allPoints.push([pt.lat, pt.lon]);
                     return [pt.lat, pt.lon];
                 });
-                
+
                 const polyline = L.polyline(latlngs, {
                     color: COLORS[0],
                     weight: 6,
                     opacity: 0.5
                 }).addTo(map);
-                
+
                 currentLayers.push(polyline);
             }
         });
-        
+
         // Fit map to track
         if (allPoints.length > 0) {
             const bounds = L.latLngBounds(allPoints);
