@@ -83,7 +83,13 @@ const UIController = (function() {
         let folderId = currentFolderId;
 
         while (folderId !== null) {
-            const folder = Database.query('SELECT * FROM folders WHERE id = ?', [folderId])[0];
+            const folderResult = Database.query('SELECT * FROM folders WHERE id = ?', [folderId]);
+            if (folderResult.length === 0) {
+                // Folder not found, break out of loop
+                console.warn(`Folder with id ${folderId} not found in database`);
+                break;
+            }
+            const folder = folderResult[0];
             pathParts.unshift({ id: folderId, name: folder.name });
             folderId = folder.parent_id;
         }
