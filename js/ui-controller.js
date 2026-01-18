@@ -279,7 +279,7 @@ const UIController = (function() {
     /**
      * Update preview for multiple selected items
      */
-    function updateMultiSelectPreview() {
+    async function updateMultiSelectPreview() {
         const selectedItems = FileManager.getSelectedItems();
         const currentGpxId = FileManager.getCurrentGpxId();
 
@@ -291,7 +291,7 @@ const UIController = (function() {
         }
 
         if (selectedItems.length === 1) {
-            updatePreview(selectedItems[0].type, selectedItems[0].id);
+            await updatePreview(selectedItems[0].type, selectedItems[0].id);
             return;
         }
 
@@ -302,10 +302,11 @@ const UIController = (function() {
         let totalLength = 0;
         let itemNames = [];
 
-        selectedItems.forEach(item => {
+        // Display items sequentially to ensure routing calculations complete
+        for (const item of selectedItems) {
             if (item.type === 'route') {
                 const route = Database.query('SELECT * FROM routes WHERE id = ?', [item.id])[0];
-                MapPreview.displayRoute(currentGpxId, item.id, true); // true = don't clear map
+                await MapPreview.displayRoute(currentGpxId, item.id, true); // true = don't clear map
                 totalLength += route.length_km;
                 itemNames.push(route.name);
             } else if (item.type === 'track') {
@@ -317,7 +318,7 @@ const UIController = (function() {
                 MapPreview.displayWaypoint(currentGpxId, item.id, true); // true = don't clear map
                 itemNames.push(Database.query('SELECT name FROM waypoints WHERE id = ?', [item.id])[0].name);
             }
-        });
+        }
 
         MapPreview.fitBounds();
 
@@ -365,7 +366,7 @@ const UIController = (function() {
     /**
      * Update preview based on selection
      */
-    function updatePreview(type, id) {
+    async function updatePreview(type, id) {
         const currentGpxId = FileManager.getCurrentGpxId();
 
         if (type === 'gpx') {
@@ -373,7 +374,7 @@ const UIController = (function() {
             updatePreviewFromGpxId(id);
             hideRoutingStrategyUI();
         } else if (type === 'route') {
-            MapPreview.displayRoute(currentGpxId, id);
+            await MapPreview.displayRoute(currentGpxId, id);
             updatePreviewFromRoute(currentGpxId, id);
             showRoutingStrategyUI(id);
         } else if (type === 'track') {
@@ -1005,7 +1006,7 @@ const UIController = (function() {
         renderFileList();
     }
 
-    function handleRoutingStrategyChange() {
+    async function handleRoutingStrategyChange() {
         const strategy = $('#routingStrategy').val();
         Routing.setStrategy(strategy);
 
@@ -1016,7 +1017,7 @@ const UIController = (function() {
             const currentGpxId = FileManager.getCurrentGpxId();
 
             // Recalculate and display route with new strategy
-            MapPreview.displayRoute(currentGpxId, routeId);
+            await MapPreview.displayRoute(currentGpxId, routeId);
 
             // Show Update Track button to save the new routing
             $('#updateTrackBtn').show();
@@ -1210,10 +1211,41 @@ const UIController = (function() {
                     item.type === 'route' || item.type === 'track' || item.type === 'waypoint'
                 );
                 if (copyableItems.length > 0) {
+                    // Store the actual data, not just references
+                    const sourceGpxId = FileManager.getCurrentGpxId();
+                    const sourceGpx = FileManager.getGpxFile(sourceGpxId);
+                    const sourceGpxData = GPXParser.parse(sourceGpx.content);
+
                     clipboard = {
                         items: copyableItems,
-                        sourceGpxId: FileManager.getCurrentGpxId()
+                        sourceGpxId: sourceGpxId,
+                        data: {
+                            routes: [],
+                            tracks: [],
+                            waypoints: []
+                        }
                     };
+
+                    // Extract the actual data for each copied item
+                    copyableItems.forEach(item => {
+                        if (item.type === 'route') {
+                            const route = Database.query('SELECT * FROM routes WHERE id = ?', [item.id])[0];
+                            if (route && sourceGpxData.routes[route.index_in_gpx]) {
+                                clipboard.data.routes.push(sourceGpxData.routes[route.index_in_gpx]);
+                            }
+                        } else if (item.type === 'track') {
+                            const track = Database.query('SELECT * FROM tracks WHERE id = ?', [item.id])[0];
+                            if (track && sourceGpxData.tracks[track.index_in_gpx]) {
+                                clipboard.data.tracks.push(sourceGpxData.tracks[track.index_in_gpx]);
+                            }
+                        } else if (item.type === 'waypoint') {
+                            const waypoint = Database.query('SELECT * FROM waypoints WHERE id = ?', [item.id])[0];
+                            if (waypoint && sourceGpxData.waypoints[waypoint.index_in_gpx]) {
+                                clipboard.data.waypoints.push(sourceGpxData.waypoints[waypoint.index_in_gpx]);
+                            }
+                        }
+                    });
+
                     updatePreviewTitle('Copied ' + copyableItems.length + ' item(s)', 'Use Ctrl+V to paste');
                 }
             }
@@ -1223,27 +1255,293 @@ const UIController = (function() {
             if (clipboard && clipboard.items.length > 0) {
                 const targetGpxId = FileManager.getCurrentGpxId();
                 if (targetGpxId) {
-                    handlePaste(targetGpxId, clipboard);
+                    handlePasteIntoGpx(targetGpxId, clipboard);
                 } else {
-                    alert('Please open a GPX file to paste into');
+                    handlePasteAsNewGpx(clipboard);
                 }
             }
         }
     }
 
     /**
-     * Handle paste operation
+     * Handle paste into existing GPX file
      */
-    async function handlePaste(targetGpxId, clipboard) {
+    async function handlePasteIntoGpx(targetGpxId, clipboard) {
         try {
-            // Mark as having unsaved changes
-            showSaveButton();
+            showLoadingSpinner();
 
-            // TODO: Implement actual paste logic
-            // This will be implemented in the in-memory changes feature
-            updatePreviewTitle('Pasted ' + clipboard.items.length + ' item(s)', 'Click Save to persist changes');
+            // Get target GPX file
+            const targetGpx = FileManager.getGpxFile(targetGpxId);
+            if (!targetGpx) {
+                throw new Error('Target GPX file not found');
+            }
+
+            // Parse target GPX
+            const targetGpxData = GPXParser.parse(targetGpx.content);
+
+            // Add clipboard data to target
+            targetGpxData.routes = targetGpxData.routes || [];
+            targetGpxData.tracks = targetGpxData.tracks || [];
+            targetGpxData.waypoints = targetGpxData.waypoints || [];
+
+            // Track indices of pasted items for selection
+            const pastedItems = {
+                routes: [],
+                tracks: [],
+                waypoints: []
+            };
+
+            // Add routes
+            clipboard.data.routes.forEach(route => {
+                pastedItems.routes.push(targetGpxData.routes.length);
+                targetGpxData.routes.push(route);
+            });
+
+            // Add tracks
+            clipboard.data.tracks.forEach(track => {
+                pastedItems.tracks.push(targetGpxData.tracks.length);
+                targetGpxData.tracks.push(track);
+            });
+
+            // Add waypoints
+            clipboard.data.waypoints.forEach(waypoint => {
+                pastedItems.waypoints.push(targetGpxData.waypoints.length);
+                targetGpxData.waypoints.push(waypoint);
+            });
+
+            // Regenerate GPX content
+            const newContent = GPXNormalizer.normalize(targetGpxData);
+
+            // Recalculate metadata
+            const newGpxData = GPXParser.parse(newContent);
+            const lengthKm = GPXNormalizer.calculateLength(newGpxData);
+            const waypointCount = newGpxData.waypoints ? newGpxData.waypoints.length : 0;
+            const ridingTimeHours = GPXNormalizer.calculateRidingTime(newGpxData);
+
+            // Update GPX file in database
+            await Database.execute(
+                'UPDATE gpx_files SET content = ?, length_km = ?, waypoint_count = ?, riding_time_hours = ? WHERE id = ?',
+                [newContent, lengthKm, waypointCount, ridingTimeHours, targetGpxId]
+            );
+
+            // Delete old routes, tracks, waypoints
+            await Database.execute('DELETE FROM routes WHERE gpx_file_id = ?', [targetGpxId]);
+            await Database.execute('DELETE FROM tracks WHERE gpx_file_id = ?', [targetGpxId]);
+            await Database.execute('DELETE FROM waypoints WHERE gpx_file_id = ?', [targetGpxId]);
+
+            // Insert new routes, tracks, waypoints
+            if (newGpxData.routes && newGpxData.routes.length > 0) {
+                for (let i = 0; i < newGpxData.routes.length; i++) {
+                    const route = newGpxData.routes[i];
+                    const routeLength = calculateRouteLength(route.points);
+                    const routeTime = routeLength / 50;
+                    await Database.execute(
+                        'INSERT INTO routes (gpx_file_id, index_in_gpx, name, length_km, riding_time_hours) VALUES (?, ?, ?, ?, ?)',
+                        [targetGpxId, i, route.name || 'Unnamed Route', routeLength, routeTime]
+                    );
+                }
+            }
+
+            if (newGpxData.tracks && newGpxData.tracks.length > 0) {
+                for (let i = 0; i < newGpxData.tracks.length; i++) {
+                    const track = newGpxData.tracks[i];
+                    const trackLength = calculateTrackLength(track.segments);
+                    const trackTime = trackLength / 50;
+                    await Database.execute(
+                        'INSERT INTO tracks (gpx_file_id, index_in_gpx, name, length_km, riding_time_hours) VALUES (?, ?, ?, ?, ?)',
+                        [targetGpxId, i, track.name || 'Unnamed Track', trackLength, trackTime]
+                    );
+                }
+            }
+
+            if (newGpxData.waypoints && newGpxData.waypoints.length > 0) {
+                for (let i = 0; i < newGpxData.waypoints.length; i++) {
+                    const waypoint = newGpxData.waypoints[i];
+                    await Database.execute(
+                        'INSERT INTO waypoints (gpx_file_id, index_in_gpx, name, lat, lon) VALUES (?, ?, ?, ?, ?)',
+                        [targetGpxId, i, waypoint.name || 'Unnamed Waypoint', waypoint.lat, waypoint.lon]
+                    );
+                }
+            }
+
+            await Database.saveToIndexedDB();
+
+            // Refresh the list
+            renderFileList();
+
+            // Select the first pasted item
+            FileManager.clearSelection();
+            if (pastedItems.routes.length > 0) {
+                const routes = Database.query('SELECT * FROM routes WHERE gpx_file_id = ? ORDER BY id', [targetGpxId]);
+                const pastedRoute = routes[pastedItems.routes[0]];
+                if (pastedRoute) {
+                    FileManager.addSelectedItem({ type: 'route', id: pastedRoute.id });
+                    await updatePreview('route', pastedRoute.id);
+
+                    // Scroll to the item
+                    const $item = $(`.file-item[data-type="route"][data-id="${pastedRoute.id}"]`);
+                    $item.addClass('selected');
+                    $item[0]?.scrollIntoView({ block: 'nearest' });
+                }
+            } else if (pastedItems.tracks.length > 0) {
+                const tracks = Database.query('SELECT * FROM tracks WHERE gpx_file_id = ? ORDER BY id', [targetGpxId]);
+                const pastedTrack = tracks[pastedItems.tracks[0]];
+                if (pastedTrack) {
+                    FileManager.addSelectedItem({ type: 'track', id: pastedTrack.id });
+                    updatePreview('track', pastedTrack.id);
+
+                    const $item = $(`.file-item[data-type="track"][data-id="${pastedTrack.id}"]`);
+                    $item.addClass('selected');
+                    $item[0]?.scrollIntoView({ block: 'nearest' });
+                }
+            } else if (pastedItems.waypoints.length > 0) {
+                const waypoints = Database.query('SELECT * FROM waypoints WHERE gpx_file_id = ? ORDER BY id', [targetGpxId]);
+                const pastedWaypoint = waypoints[pastedItems.waypoints[0]];
+                if (pastedWaypoint) {
+                    FileManager.addSelectedItem({ type: 'waypoint', id: pastedWaypoint.id });
+                    updatePreview('waypoint', pastedWaypoint.id);
+
+                    const $item = $(`.file-item[data-type="waypoint"][data-id="${pastedWaypoint.id}"]`);
+                    $item.addClass('selected');
+                    $item[0]?.scrollIntoView({ block: 'nearest' });
+                }
+            }
+
+            hideLoadingSpinner();
+
         } catch (error) {
+            hideLoadingSpinner();
             alert('Failed to paste: ' + error.message);
+        }
+    }
+
+    /**
+     * Handle paste as new GPX file (when pasting at folder level)
+     */
+    async function handlePasteAsNewGpx(clipboard) {
+        try {
+            // Prompt for GPX name
+            const gpxName = prompt('Enter name for new GPX file:', 'Pasted Routes');
+            if (!gpxName) {
+                return; // User cancelled
+            }
+
+            showLoadingSpinner();
+
+            // Create new GPX data with clipboard items
+            const newGpxData = {
+                metadata: {
+                    name: gpxName,
+                    desc: 'Created from pasted items',
+                    author: 'GPX Library',
+                    time: new Date().toISOString()
+                },
+                routes: clipboard.data.routes || [],
+                tracks: clipboard.data.tracks || [],
+                waypoints: clipboard.data.waypoints || []
+            };
+
+            // Normalize to GPX 1.0
+            const normalizedContent = GPXNormalizer.normalize(newGpxData);
+            const normalizedGpxData = GPXParser.parse(normalizedContent);
+
+            // Calculate metadata
+            const lengthKm = GPXNormalizer.calculateLength(normalizedGpxData);
+            const waypointCount = normalizedGpxData.waypoints ? normalizedGpxData.waypoints.length : 0;
+            const ridingTimeHours = GPXNormalizer.calculateRidingTime(normalizedGpxData);
+
+            // Insert GPX file
+            const currentFolderId = FileManager.getCurrentFolderId();
+            const timestamp = Date.now();
+            const gpxId = await Database.execute(
+                `INSERT INTO gpx_files
+                (name, folder_id, content, length_km, waypoint_count, riding_time_hours, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                [gpxName, currentFolderId, normalizedContent, lengthKm, waypointCount, ridingTimeHours, timestamp]
+            );
+
+            // Store routes, tracks, waypoints
+            if (normalizedGpxData.routes && normalizedGpxData.routes.length > 0) {
+                for (let i = 0; i < normalizedGpxData.routes.length; i++) {
+                    const route = normalizedGpxData.routes[i];
+                    const routeLength = calculateRouteLength(route.points);
+                    const routeTime = routeLength / 50;
+                    await Database.execute(
+                        'INSERT INTO routes (gpx_file_id, index_in_gpx, name, length_km, riding_time_hours) VALUES (?, ?, ?, ?, ?)',
+                        [gpxId, i, route.name || 'Unnamed Route', routeLength, routeTime]
+                    );
+                }
+            }
+
+            if (normalizedGpxData.tracks && normalizedGpxData.tracks.length > 0) {
+                for (let i = 0; i < normalizedGpxData.tracks.length; i++) {
+                    const track = normalizedGpxData.tracks[i];
+                    const trackLength = calculateTrackLength(track.segments);
+                    const trackTime = trackLength / 50;
+                    await Database.execute(
+                        'INSERT INTO tracks (gpx_file_id, index_in_gpx, name, length_km, riding_time_hours) VALUES (?, ?, ?, ?, ?)',
+                        [gpxId, i, track.name || 'Unnamed Track', trackLength, trackTime]
+                    );
+                }
+            }
+
+            if (normalizedGpxData.waypoints && normalizedGpxData.waypoints.length > 0) {
+                for (let i = 0; i < normalizedGpxData.waypoints.length; i++) {
+                    const waypoint = normalizedGpxData.waypoints[i];
+                    await Database.execute(
+                        'INSERT INTO waypoints (gpx_file_id, index_in_gpx, name, lat, lon) VALUES (?, ?, ?, ?, ?)',
+                        [gpxId, i, waypoint.name || 'Unnamed Waypoint', waypoint.lat, waypoint.lon]
+                    );
+                }
+            }
+
+            await Database.saveToIndexedDB();
+
+            // Open the new GPX file automatically
+            FileManager.setCurrentGpxId(gpxId);
+            FileManager.clearSelection();
+
+            // Refresh the list (will show GPX contents)
+            renderFileList();
+
+            // Select and show the first pasted item
+            if (normalizedGpxData.routes && normalizedGpxData.routes.length > 0) {
+                const routes = Database.query('SELECT * FROM routes WHERE gpx_file_id = ? ORDER BY id', [gpxId]);
+                if (routes.length > 0) {
+                    FileManager.addSelectedItem({ type: 'route', id: routes[0].id });
+                    await updatePreview('route', routes[0].id);
+
+                    const $item = $(`.file-item[data-type="route"][data-id="${routes[0].id}"]`);
+                    $item.addClass('selected');
+                    $item[0]?.scrollIntoView({ block: 'nearest' });
+                }
+            } else if (normalizedGpxData.tracks && normalizedGpxData.tracks.length > 0) {
+                const tracks = Database.query('SELECT * FROM tracks WHERE gpx_file_id = ? ORDER BY id', [gpxId]);
+                if (tracks.length > 0) {
+                    FileManager.addSelectedItem({ type: 'track', id: tracks[0].id });
+                    updatePreview('track', tracks[0].id);
+
+                    const $item = $(`.file-item[data-type="track"][data-id="${tracks[0].id}"]`);
+                    $item.addClass('selected');
+                    $item[0]?.scrollIntoView({ block: 'nearest' });
+                }
+            } else if (normalizedGpxData.waypoints && normalizedGpxData.waypoints.length > 0) {
+                const waypoints = Database.query('SELECT * FROM waypoints WHERE gpx_file_id = ? ORDER BY id', [gpxId]);
+                if (waypoints.length > 0) {
+                    FileManager.addSelectedItem({ type: 'waypoint', id: waypoints[0].id });
+                    updatePreview('waypoint', waypoints[0].id);
+
+                    const $item = $(`.file-item[data-type="waypoint"][data-id="${waypoints[0].id}"]`);
+                    $item.addClass('selected');
+                    $item[0]?.scrollIntoView({ block: 'nearest' });
+                }
+            }
+
+            hideLoadingSpinner();
+
+        } catch (error) {
+            hideLoadingSpinner();
+            alert('Failed to create GPX from paste: ' + error.message);
         }
     }
 
@@ -1286,7 +1584,31 @@ const UIController = (function() {
     function hideLoadingSpinner() {
         $('.spinner-overlay').remove();
     }
-    
+
+    /**
+     * Calculate route length from points
+     */
+    function calculateRouteLength(points) {
+        let length = 0;
+        for (let i = 1; i < points.length; i++) {
+            const p1 = points[i - 1];
+            const p2 = points[i];
+            length += GPXNormalizer.calculateDistance(p1.lat, p1.lon, p2.lat, p2.lon);
+        }
+        return length;
+    }
+
+    /**
+     * Calculate track length from segments
+     */
+    function calculateTrackLength(segments) {
+        let length = 0;
+        segments.forEach(segment => {
+            length += calculateRouteLength(segment.points);
+        });
+        return length;
+    }
+
     // Public API
     return {
         init,

@@ -169,10 +169,11 @@ const FileManager = (function() {
 
                 // Store waypoints (from normalized GPX - may have been created from route points)
                 if (normalizedGpxData.waypoints && normalizedGpxData.waypoints.length > 0) {
-                    for (const waypoint of normalizedGpxData.waypoints) {
+                    for (let i = 0; i < normalizedGpxData.waypoints.length; i++) {
+                        const waypoint = normalizedGpxData.waypoints[i];
                         await Database.execute(
-                            'INSERT INTO waypoints (gpx_file_id, name, lat, lon) VALUES (?, ?, ?, ?)',
-                            [gpxId, waypoint.name || 'Waypoint', waypoint.lat, waypoint.lon]
+                            'INSERT INTO waypoints (gpx_file_id, index_in_gpx, name, lat, lon) VALUES (?, ?, ?, ?, ?)',
+                            [gpxId, i, waypoint.name || 'Waypoint', waypoint.lat, waypoint.lon]
                         );
                     }
                 }

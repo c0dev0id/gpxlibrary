@@ -142,6 +142,14 @@ const Database = (function() {
                 db.run('ALTER TABLE tracks ADD COLUMN index_in_gpx INTEGER DEFAULT 0');
             }
 
+            // Check if index_in_gpx column exists in waypoints table
+            const waypointsColumns = db.exec("PRAGMA table_info(waypoints)");
+            const hasWaypointsIndex = waypointsColumns[0]?.values?.some(row => row[1] === 'index_in_gpx');
+
+            if (!hasWaypointsIndex) {
+                db.run('ALTER TABLE waypoints ADD COLUMN index_in_gpx INTEGER DEFAULT 0');
+            }
+
             // Check if routing_strategy column exists in routes table
             const hasRoutingStrategy = routesColumns[0]?.values?.some(row => row[1] === 'routing_strategy');
 
