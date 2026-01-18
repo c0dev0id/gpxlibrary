@@ -62,19 +62,15 @@
                 log('='.repeat(80));
                 log('');
 
-                // Initialize database (delete first to start fresh)
-                output.append('<div class="section"><h2>1. Delete and Reinitialize Database</h2>');
-                log('STEP 1: Delete and Reinitialize Database');
+                // Initialize database with temporary name for testing
+                output.append('<div class="section"><h2>1. Initialize Test Database</h2>');
+                log('STEP 1: Initialize Test Database');
                 log('-'.repeat(80));
-                try {
-                    await Database.deleteAndReinitialize();
-                    output.append('<p class="success">✓ Database deleted and reinitialized</p>');
-                    log('✓ Database deleted and reinitialized');
-                } catch (e) {
-                    await Database.init();
-                    output.append('<p class="success">✓ Database initialized</p>');
-                    log('✓ Database initialized');
-                }
+                const testDbName = 'test_paessetraining_' + Date.now();
+                log('Test database name: ' + testDbName);
+                await Database.init(testDbName);
+                output.append('<p class="success">✓ Test database initialized: ' + testDbName + '</p>');
+                log('✓ Test database initialized: ' + testDbName);
                 output.append('</div>');
                 log('');
 

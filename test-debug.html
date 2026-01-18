@@ -43,10 +43,11 @@
             output.html('<h2>Processing...</h2>');
 
             try {
-                // Initialize database
-                output.append('<h3>1. Initializing Database</h3>');
-                await Database.init();
-                output.append('<p class="success">✓ Database initialized</p>');
+                // Initialize test database
+                output.append('<h3>1. Initializing Test Database</h3>');
+                const testDbName = 'test_debug_' + Date.now();
+                await Database.init(testDbName);
+                output.append('<p class="success">✓ Test database initialized: ' + testDbName + '</p>');
 
                 // Read file
                 output.append('<h3>2. Reading File</h3>');

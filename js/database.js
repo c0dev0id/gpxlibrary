@@ -5,17 +5,20 @@
 
 const Database = (function() {
     'use strict';
-    
+
     let db = null;
     let SQL = null;
-    const DB_NAME = 'gpx_library_db';
+    const DEFAULT_DB_NAME = 'gpx_library_db';
+    let currentDbName = DEFAULT_DB_NAME;
     const DB_VERSION = 1;
     const STORE_NAME = 'sqliteStore';
-    
+
     /**
      * Initialize SQL.js and load database from IndexedDB or create new
+     * @param {string} dbName - Optional database name (for testing, use a different name)
      */
-    async function init() {
+    async function init(dbName = DEFAULT_DB_NAME) {
+        currentDbName = dbName;
         try {
             // Initialize SQL.js
             SQL = await initSqlJs({
@@ -156,7 +159,7 @@ const Database = (function() {
     async function saveToIndexedDB() {
         return new Promise((resolve, reject) => {
             const data = db.export();
-            const request = indexedDB.open(DB_NAME, DB_VERSION);
+            const request = indexedDB.open(currentDbName, DB_VERSION);
             
             request.onerror = () => reject(request.error);
             
@@ -189,7 +192,7 @@ const Database = (function() {
      */
     async function loadFromIndexedDB() {
         return new Promise((resolve, reject) => {
-            const request = indexedDB.open(DB_NAME, DB_VERSION);
+            const request = indexedDB.open(currentDbName, DB_VERSION);
             
             request.onerror = () => reject(request.error);
             
@@ -325,7 +328,7 @@ const Database = (function() {
             }
 
             // Delete IndexedDB
-            const request = indexedDB.deleteDatabase(DB_NAME);
+            const request = indexedDB.deleteDatabase(currentDbName);
 
             request.onsuccess = async () => {
                 console.log('Database deleted successfully');
