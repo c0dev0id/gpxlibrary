@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPX Library - Unit Test Runner</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #007bff;
+            padding-bottom: 10px;
+        }
+
+        .test-summary {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .test-summary h2 {
+            margin-top: 0;
+            color: #555;
+        }
+
+        .test-module {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .test-module h3 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 10px;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .status.success {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .status.failure {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .status.running {
+            background-color: #ffc107;
+            color: #333;
+        }
+
+        .test-results {
+            margin-top: 15px;
+        }
+
+        .metric {
+            display: inline-block;
+            margin-right: 20px;
+            padding: 8px 15px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .metric.passed {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .metric.failed {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .metric.total {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+
+        #console {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 600px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+
+        .error {
+            color: #f48771;
+        }
+
+        .success {
+            color: #89d185;
+        }
+
+        .info {
+            color: #75beff;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #007bff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <h1>GPX Library - Unit Test Runner</h1>
+
+    <div class="test-summary">
+        <h2>Test Summary</h2>
+        <div id="overallStatus">
+            <span class="status running">Initializing...</span>
+        </div>
+        <div class="test-results" id="overallResults">
+            <span class="metric total">Total: <span id="totalTests">0</span></span>
+            <span class="metric passed">Passed: <span id="passedTests">0</span></span>
+            <span class="metric failed">Failed: <span id="failedTests">0</span></span>
+        </div>
+    </div>
+
+    <div id="moduleResults"></div>
+
+    <button id="runTestsBtn" onclick="runAllTests()">Run Tests</button>
+
+    <h3>Console Output</h3>
+    <div id="console"></div>
+
+    <!-- External Libraries -->
+    <script src="../lib/jquery-3.7.0.min.js"></script>
+    <script src="../lib/sql.js"></script>
+    <script src="../lib/leaflet.js"></script>
+    <script src="../lib/leaflet-routing-machine.js"></script>
+    <script src="../lib/jszip.min.js"></script>
+
+    <!-- Application Modules -->
+    <script src="../js/database.js"></script>
+    <script src="../js/gpx-parser.js"></script>
+    <script src="../js/gpx-normalizer.js"></script>
+    <script src="../js/file-manager.js"></script>
+    <script src="../js/routing.js"></script>
+
+    <!-- Test Modules -->
+    <script src="test-gpx-normalizer.js"></script>
+    <script src="test-database.js"></script>
+    <script src="test-gpx-parser.js"></script>
+    <script src="test-file-manager.js"></script>
+    <script src="test-routing.js"></script>
+
+    <script>
+        // Override console methods to capture output
+        const consoleOutput = document.getElementById('console');
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+
+        function appendToConsole(message, className = '') {
+            const span = document.createElement('span');
+            span.textContent = message + '\n';
+            if (className) {
+                span.className = className;
+            }
+            consoleOutput.appendChild(span);
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            const message = args.join(' ');
+            if (message.startsWith('✓')) {
+                appendToConsole(message, 'success');
+            } else if (message.startsWith('✗')) {
+                appendToConsole(message, 'error');
+            } else {
+                appendToConsole(message, 'info');
+            }
+        };
+
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            appendToConsole(args.join(' '), 'error');
+        };
+
+        console.warn = function(...args) {
+            originalWarn.apply(console, args);
+            appendToConsole(args.join(' '), 'info');
+        };
+
+        // Initialize database before running tests
+        let dbInitialized = false;
+
+        async function initializeDatabase() {
+            try {
+                console.log('Initializing database...');
+                await Database.init();
+                dbInitialized = true;
+                console.log('Database initialized successfully');
+                document.getElementById('overallStatus').innerHTML = '<span class="status" style="background-color: #17a2b8; color: white;">Ready to Run</span>';
+                document.getElementById('runTestsBtn').disabled = false;
+            } catch (error) {
+                console.error('Failed to initialize database:', error);
+                document.getElementById('overallStatus').innerHTML = '<span class="status failure">Initialization Failed</span>';
+                document.getElementById('runTestsBtn').disabled = true;
+            }
+        }
+
+        // Run all test suites
+        async function runAllTests() {
+            if (!dbInitialized) {
+                alert('Database not initialized. Please wait...');
+                return;
+            }
+
+            // Disable button during test run
+            document.getElementById('runTestsBtn').disabled = true;
+            document.getElementById('overallStatus').innerHTML = '<span class="status running">Running Tests...</span><div class="loader"></div>';
+
+            // Clear console
+            consoleOutput.innerHTML = '';
+
+            // Clear previous results
+            document.getElementById('moduleResults').innerHTML = '';
+
+            const testSuites = [
+                { name: 'GPX Normalizer', suite: GPXNormalizerTests },
+                { name: 'Database', suite: DatabaseTests },
+                { name: 'GPX Parser', suite: GPXParserTests },
+                { name: 'File Manager', suite: FileManagerTests },
+                { name: 'Routing', suite: RoutingTests }
+            ];
+
+            let totalPassed = 0;
+            let totalFailed = 0;
+            let totalTests = 0;
+
+            for (const { name, suite } of testSuites) {
+                console.log(`\n${'='.repeat(50)}`);
+                console.log(`Running ${name} Tests`);
+                console.log('='.repeat(50));
+
+                const result = await suite.runTests();
+
+                totalPassed += result.passed;
+                totalFailed += result.failed;
+                totalTests += result.total;
+
+                // Add module result card
+                const moduleDiv = document.createElement('div');
+                moduleDiv.className = 'test-module';
+
+                const statusClass = result.failed === 0 ? 'success' : 'failure';
+                const statusText = result.failed === 0 ? 'All Tests Passed' : `${result.failed} Test(s) Failed`;
+
+                moduleDiv.innerHTML = `
+                    <h3>${name} <span class="status ${statusClass}">${statusText}</span></h3>
+                    <div class="test-results">
+                        <span class="metric total">Total: ${result.total}</span>
+                        <span class="metric passed">Passed: ${result.passed}</span>
+                        <span class="metric failed">Failed: ${result.failed}</span>
+                    </div>
+                `;
+
+                document.getElementById('moduleResults').appendChild(moduleDiv);
+            }
+
+            // Update overall summary
+            document.getElementById('totalTests').textContent = totalTests;
+            document.getElementById('passedTests').textContent = totalPassed;
+            document.getElementById('failedTests').textContent = totalFailed;
+
+            const overallStatus = totalFailed === 0 ? 'success' : 'failure';
+            const overallText = totalFailed === 0 ? 'All Tests Passed!' : `${totalFailed} Test(s) Failed`;
+
+            document.getElementById('overallStatus').innerHTML = `<span class="status ${overallStatus}">${overallText}</span>`;
+
+            console.log(`\n${'='.repeat(50)}`);
+            console.log('OVERALL RESULTS');
+            console.log('='.repeat(50));
+            console.log(`Total: ${totalTests}`);
+            console.log(`Passed: ${totalPassed}`);
+            console.log(`Failed: ${totalFailed}`);
+            console.log('='.repeat(50));
+
+            // Re-enable button
+            document.getElementById('runTestsBtn').disabled = false;
+        }
+
+        // Initialize on load
+        window.addEventListener('load', initializeDatabase);
+    </script>
+</body>
+</html>
