@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPX Library - Motorcycle Route Manager</title>
+    
+    <!-- Bootstrap 5.3 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <!-- Leaflet Routing Machine CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container-fluid h-100">
+        <div class="row h-100">
+            <!-- Left Panel - File Browser -->
+            <div class="col-md-4 border-end d-flex flex-column h-100">
+                <div class="p-3 border-bottom">
+                    <h3 class="mb-3">GPX Library</h3>
+                    
+                    <!-- Action Buttons -->
+                    <div class="btn-group w-100 mb-2" role="group">
+                        <button type="button" class="btn btn-primary" id="uploadBtn">
+                            Upload
+                        </button>
+                        <button type="button" class="btn btn-success" id="downloadBtn">
+                            Download
+                        </button>
+                        <button type="button" class="btn btn-secondary" id="newFolderBtn">
+                            New Folder
+                        </button>
+                    </div>
+
+                    <!-- File Actions -->
+                    <div class="btn-group w-100 mb-3" role="group">
+                        <button type="button" class="btn btn-outline-primary" id="renameBtn">
+                            Rename
+                        </button>
+                        <button type="button" class="btn btn-outline-danger" id="deleteBtn">
+                            Delete
+                        </button>
+                    </div>
+                    
+                    <!-- Database Actions -->
+                    <div class="btn-group w-100 mb-3" role="group">
+                        <button type="button" class="btn btn-outline-secondary" id="exportDbBtn">
+                            <i class="bi bi-database-down"></i> Export DB
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" id="importDbBtn">
+                            <i class="bi bi-database-up"></i> Import DB
+                        </button>
+                    </div>
+                    
+                    <!-- Current Path -->
+                    <div class="mb-2">
+                        <strong>Path:</strong> <span id="currentPath">/</span>
+                    </div>
+
+                    <!-- Filter (hidden when GPX content displayed) -->
+                    <div class="mb-2" id="filterContainer">
+                        <input type="text" class="form-control form-control-sm mb-2" id="filterName" placeholder="Filter by name">
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <input type="number" class="form-control form-control-sm" id="filterLengthMin" placeholder="Min km">
+                            </div>
+                            <div class="col-6">
+                                <input type="number" class="form-control form-control-sm" id="filterLengthMax" placeholder="Max km">
+                            </div>
+                        </div>
+                        <div class="row g-2 mt-1">
+                            <div class="col-6">
+                                <input type="number" class="form-control form-control-sm" id="filterWaypointsMin" placeholder="Min waypoints">
+                            </div>
+                            <div class="col-6">
+                                <input type="number" class="form-control form-control-sm" id="filterWaypointsMax" placeholder="Max waypoints">
+                            </div>
+                        </div>
+                        <div class="row g-2 mt-1">
+                            <div class="col-6">
+                                <input type="number" class="form-control form-control-sm" id="filterTimeMin" placeholder="Min hours">
+                            </div>
+                            <div class="col-6">
+                                <input type="number" class="form-control form-control-sm" id="filterTimeMax" placeholder="Max hours">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- File List -->
+                <div class="flex-grow-1 overflow-auto p-3" id="fileList">
+                    <!-- File list will be populated here -->
+                </div>
+
+                <!-- Developer Tools -->
+                <div class="p-3 border-top">
+                    <button type="button" class="btn btn-sm btn-danger" id="deleteDbBtn">
+                        🗑️ Delete DB (Dev)
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Right Panel - Map Preview -->
+            <div class="col-md-8 d-flex flex-column h-100">
+                <div class="p-3 border-bottom">
+                    <h4 id="previewTitle">Select a GPX file to preview</h4>
+                    <div id="previewMetadata" class="text-muted small"></div>
+
+                    <!-- Routing Strategy (hidden by default, shown when route selected) -->
+                    <div class="mt-3" id="routingStrategyContainer" style="display: none;">
+                        <label for="routingStrategy" class="form-label"><strong>Routing Strategy:</strong></label>
+                        <div class="row g-2">
+                            <div class="col-9">
+                                <select class="form-select form-select-sm" id="routingStrategy">
+                                    <option value="road" selected>Road (Fast)</option>
+                                    <option value="road-no-motorway">Road - Avoid Motorway</option>
+                                    <option value="curvy">Curvy (Scenic)</option>
+                                    <option value="prefer-unpaved">Prefer Unpaved</option>
+                                </select>
+                            </div>
+                            <div class="col-3">
+                                <button type="button" class="btn btn-sm btn-primary w-100" id="updateTrackBtn" style="display: none;">
+                                    Update Track
+                                </button>
+                            </div>
+                        </div>
+                        <small class="text-muted d-block">Note: Public OSRM API uses same routing for all strategies. For true strategy differences, a custom routing service is needed.</small>
+                    </div>
+                </div>
+                <div class="flex-grow-1" id="mapContainer">
+                    <!-- Map will be rendered here -->
+                </div>
+
+                <!-- Save Button (hidden by default, shown when changes made) -->
+                <div class="p-3 border-top" id="saveContainer" style="display: none;">
+                    <button type="button" class="btn btn-success w-100" id="saveChangesBtn">
+                        💾 Save Changes
+                    </button>
+                    <small class="text-muted d-block mt-1 text-center">You have unsaved changes</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Hidden file inputs -->
+    <input type="file" id="gpxFileInput" multiple accept=".gpx" style="display: none;">
+    <input type="file" id="dbFileInput" accept=".db" style="display: none;">
+    
+    <!-- jQuery 3.7 -->
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    
+    <!-- Bootstrap 5.3 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Leaflet Routing Machine JS -->
+    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+
+    <!-- SQL.js -->
+    <script src="https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/sql-wasm.js"></script>
+    
+    <!-- JSZip -->
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    
+    <!-- Application JS -->
+    <script src="js/database.js?v=10"></script>
+    <script src="js/gpx-parser.js?v=10"></script>
+    <script src="js/gpx-normalizer.js?v=10"></script>
+    <script src="js/routing.js?v=10"></script>
+    <script src="js/file-manager.js?v=10"></script>
+    <script src="js/map-preview.js?v=10"></script>
+    <script src="js/ui-controller.js?v=10"></script>
+    <script src="js/app.js?v=10"></script>
+</body>
+</html>
