@@ -1,0 +1,309 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="Rumo" xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="https://www.w3.org/2001/XMLSchema-instance" xmlns:rumo="https://www.rumoadventures.com/xmlschemas/GpxExtensions/v1" xmlns:gpxx="https://www.garmin.com/xmlschemas/GpxExtensions/v3" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd https://www.rumoadventures.com/xmlschemas/GpxExtensions/v1 https://www.rumoadventures.com/xmlschemas/GpxExtensions/v1.xsd https://www.garmin.com/xmlschemas/GpxExtensions/v3 https://www8.garmin.com/xmlschemas/GpxExtensions/v3/GpxExtensionsv3.xsd">
+  <metadata>
+    <name>Paessetraining Vogesen 2026 (Anfahrt) - created by sdk on Rumo</name>
+    <desc></desc>
+    <author>
+      <name>sdk</name>
+      <link href="https://rumo.dmdnavigation.com/profile/sdk"></link>
+    </author>
+    <copyright author="sdk">
+      <year>2026</year>
+    </copyright>
+    <link href="https://rumo.dmdnavigation.com/trip/XoKSI8TdkOITDHQ1cZ0QK">
+      <text>Paessetraining Vogesen 2026 (Anfahrt) - created by sdk</text>
+      <type>text/html</type>
+    </link>
+    <time>2026-01-17T19:19:45.186Z</time>
+    <bounds maxlat="49.558665" maxlon="8.921802" minlat="47.746012" minlon="6.961127" />
+  </metadata>
+  <wpt lat="48.008112" lon="7.815341">
+    <ele>248.0</ele>
+    <name>Treffpunkt (Esso Station Freiburg Sundgauallee)</name>
+    <src>search</src>
+    <sym>fuel</sym>
+    <type>waypoint</type>
+  </wpt>
+  <wpt lat="49.257344" lon="8.602029">
+    <ele>114.0</ele>
+    <name>Treffpunkt (A5, Parkplatz Lußhard)</name>
+    <src>search</src>
+    <sym>default</sym>
+    <type>waypoint</type>
+  </wpt>
+  <wpt lat="47.930117" lon="6.964945">
+    <ele>490.0</ele>
+    <name>Kruth (not exact)</name>
+    <desc>56 Grand Rue, 68820 Kruth, France</desc>
+    <sym>default</sym>
+    <type>default</type>
+  </wpt>
+  <rte>
+    <name>Sabine</name>
+    <number>1</number>
+    <extensions>
+      <rumo:RouteExtension>
+        <rumo:DisplayColor>MAGENTA</rumo:DisplayColor>
+        <rumo:RoutingProfile>road-fast-all</rumo:RoutingProfile>
+        <rumo:ShapingPoints>
+          <rumo:ShapingPoint lat="49.557718" lon="8.671868">
+            <rumo:ele>110.5</rumo:ele>
+          </rumo:ShapingPoint>
+          <rumo:ShapingPoint lat="49.257344" lon="8.602029">
+            <rumo:name>Treffpunkt (A5, Parkplatz Lußhard)</rumo:name>
+            <rumo:ele>111</rumo:ele>
+          </rumo:ShapingPoint>
+          <rumo:ShapingPoint lat="48.008112" lon="7.815341">
+            <rumo:name>Treffpunkt (Esso Station Freiburg Sundgauallee)</rumo:name>
+            <rumo:ele>245.5</rumo:ele>
+          </rumo:ShapingPoint>
+          <rumo:ShapingPoint lat="47.92989" lon="6.965017">
+            <rumo:name>Kruth</rumo:name>
+            <rumo:ele>489.5</rumo:ele>
+          </rumo:ShapingPoint>
+        </rumo:ShapingPoints>
+      </rumo:RouteExtension>
+      <gpxx:RouteExtension>
+        <gpxx:DisplayColor>Blue</gpxx:DisplayColor>
+      </gpxx:RouteExtension>
+    </extensions>
+    <rtept lat="49.557718" lon="8.671868">
+      <ele>110.5</ele>
+    </rtept>
+    <rtept lat="49.257344" lon="8.602029">
+      <ele>111.0</ele>
+      <name>Treffpunkt (A5, Parkplatz Lußhard)</name>
+    </rtept>
+    <rtept lat="48.008112" lon="7.815341">
+      <ele>245.5</ele>
+      <name>Treffpunkt (Esso Station Freiburg Sundgauallee)</name>
+    </rtept>
+    <rtept lat="47.92989" lon="6.965017">
+      <ele>489.5</ele>
+      <name>Kruth</name>
+    </rtept>
+  </rte>
+  <rte>
+    <name>Catch 22</name>
+    <number>2</number>
+    <extensions>
+      <rumo:RouteExtension>
+        <rumo:DisplayColor>GREEN</rumo:DisplayColor>
+        <rumo:RoutingProfile>road-fast-all</rumo:RoutingProfile>
+        <rumo:ShapingPoints>
+          <rumo:ShapingPoint lat="49.379436" lon="8.569906">
+            <rumo:name>Bodelschwinghstraße</rumo:name>
+            <rumo:ele>99.3</rumo:ele>
+          </rumo:ShapingPoint>
+          <rumo:ShapingPoint lat="49.257344" lon="8.602029">
+            <rumo:name>Treffpunkt (A5, Parkplatz Lußhard)</rumo:name>
+            <rumo:ele>111</rumo:ele>
+          </rumo:ShapingPoint>
+          <rumo:ShapingPoint lat="48.008112" lon="7.815341">
+            <rumo:name>Treffpunkt (Esso Station Freiburg Sundgauallee)</rumo:name>
+            <rumo:ele>245.5</rumo:ele>
+          </rumo:ShapingPoint>
+          <rumo:ShapingPoint lat="47.92989" lon="6.965017">
+            <rumo:name>Kruth</rumo:name>
+            <rumo:ele>489.5</rumo:ele>
+          </rumo:ShapingPoint>
+        </rumo:ShapingPoints>
+      </rumo:RouteExtension>
+      <gpxx:RouteExtension>
+        <gpxx:DisplayColor>Blue</gpxx:DisplayColor>
+      </gpxx:RouteExtension>
+    </extensions>
+    <rtept lat="49.379436" lon="8.569906">
+      <ele>99.3</ele>
+      <name>Bodelschwinghstraße</name>
+    </rtept>
+    <rtept lat="49.257344" lon="8.602029">
+      <ele>111.0</ele>
+      <name>Treffpunkt (A5, Parkplatz Lußhard)</name>
+    </rtept>
+    <rtept lat="48.008112" lon="7.815341">
+      <ele>245.5</ele>
+      <name>Treffpunkt (Esso Station Freiburg Sundgauallee)</name>
+    </rtept>
+    <rtept lat="47.92989" lon="6.965017">
+      <ele>489.5</ele>
+      <name>Kruth</name>
+    </rtept>
+  </rte>
+  <rte>
+    <name>Uggi &amp; Bonifaz</name>
+    <number>3</number>
+    <extensions>
+      <rumo:RouteExtension>
+        <rumo:DisplayColor>CYAN</rumo:DisplayColor>
+        <rumo:RoutingProfile>road-fast-all</rumo:RoutingProfile>
+        <rumo:ShapingPoints>
+          <rumo:ShapingPoint lat="49.216821" lon="8.916401">
+            <rumo:ele>176.5</rumo:ele>
+          </rumo:ShapingPoint>
+          <rumo:ShapingPoint lat="49.257344" lon="8.602029">
+            <rumo:name>Treffpunkt (A5, Parkplatz Lußhard)</rumo:name>
+            <rumo:ele>111</rumo:ele>
+          </rumo:ShapingPoint>
+          <rumo:ShapingPoint lat="48.008112" lon="7.815341">
+            <rumo:name>Treffpunkt (Esso Station Freiburg Sundgauallee)</rumo:name>
+            <rumo:ele>245.5</rumo:ele>
+          </rumo:ShapingPoint>
+          <rumo:ShapingPoint lat="47.92989" lon="6.965017">
+            <rumo:name>Kruth</rumo:name>
+            <rumo:ele>489.5</rumo:ele>
+          </rumo:ShapingPoint>
+        </rumo:ShapingPoints>
+      </rumo:RouteExtension>
+      <gpxx:RouteExtension>
+        <gpxx:DisplayColor>Blue</gpxx:DisplayColor>
+      </gpxx:RouteExtension>
+    </extensions>
+    <rtept lat="49.216821" lon="8.916401">
+      <ele>176.5</ele>
+    </rtept>
+    <rtept lat="49.257344" lon="8.602029">
+      <ele>111.0</ele>
+      <name>Treffpunkt (A5, Parkplatz Lußhard)</name>
+    </rtept>
+    <rtept lat="48.008112" lon="7.815341">
+      <ele>245.5</ele>
+      <name>Treffpunkt (Esso Station Freiburg Sundgauallee)</name>
+    </rtept>
+    <rtept lat="47.92989" lon="6.965017">
+      <ele>489.5</ele>
+      <name>Kruth</name>
+    </rtept>
+  </rte>
+  <rte>
+    <name>Stefan &amp; Jessica</name>
+    <number>4</number>
+    <extensions>
+      <rumo:RouteExtension>
+        <rumo:DisplayColor>#E5A50A</rumo:DisplayColor>
+        <rumo:RoutingProfile>road-fast-all</rumo:RoutingProfile>
+        <rumo:ShapingPoints>
+          <rumo:ShapingPoint lat="49.310524" lon="8.559094">
+            <rumo:name>Home</rumo:name>
+            <rumo:ele>104.5</rumo:ele>
+          </rumo:ShapingPoint>
+          <rumo:ShapingPoint lat="49.257344" lon="8.602029">
+            <rumo:name>Treffpunkt (A5, Parkplatz Lußhard)</rumo:name>
+            <rumo:ele>111</rumo:ele>
+          </rumo:ShapingPoint>
+          <rumo:ShapingPoint lat="48.008112" lon="7.815341">
+            <rumo:name>Treffpunkt (Esso Station Freiburg Sundgauallee)</rumo:name>
+            <rumo:ele>245.5</rumo:ele>
+          </rumo:ShapingPoint>
+          <rumo:ShapingPoint lat="47.92989" lon="6.965017">
+            <rumo:name>Kruth</rumo:name>
+            <rumo:ele>489.5</rumo:ele>
+          </rumo:ShapingPoint>
+        </rumo:ShapingPoints>
+      </rumo:RouteExtension>
+      <gpxx:RouteExtension>
+        <gpxx:DisplayColor>DarkYellow</gpxx:DisplayColor>
+      </gpxx:RouteExtension>
+    </extensions>
+    <rtept lat="49.310524" lon="8.559094">
+      <ele>104.5</ele>
+      <name>Home</name>
+    </rtept>
+    <rtept lat="49.257344" lon="8.602029">
+      <ele>111.0</ele>
+      <name>Treffpunkt (A5, Parkplatz Lußhard)</name>
+    </rtept>
+    <rtept lat="48.008112" lon="7.815341">
+      <ele>245.5</ele>
+      <name>Treffpunkt (Esso Station Freiburg Sundgauallee)</name>
+    </rtept>
+    <rtept lat="47.92989" lon="6.965017">
+      <ele>489.5</ele>
+      <name>Kruth</name>
+    </rtept>
+  </rte>
+  <rte>
+    <name>MBiker</name>
+    <number>5</number>
+    <extensions>
+      <rumo:RouteExtension>
+        <rumo:DisplayColor>BLUE</rumo:DisplayColor>
+        <rumo:RoutingProfile>road-fast-all</rumo:RoutingProfile>
+        <rumo:ShapingPoints>
+          <rumo:ShapingPoint lat="49.384493" lon="8.802648">
+            <rumo:ele>147.5</rumo:ele>
+          </rumo:ShapingPoint>
+          <rumo:ShapingPoint lat="49.257344" lon="8.602029">
+            <rumo:name>Treffpunkt (A5, Parkplatz Lußhard)</rumo:name>
+            <rumo:ele>111</rumo:ele>
+          </rumo:ShapingPoint>
+          <rumo:ShapingPoint lat="48.008112" lon="7.815341">
+            <rumo:name>Treffpunkt (Esso Station Freiburg Sundgauallee)</rumo:name>
+            <rumo:ele>245.5</rumo:ele>
+          </rumo:ShapingPoint>
+          <rumo:ShapingPoint lat="47.92989" lon="6.965017">
+            <rumo:name>Kruth</rumo:name>
+            <rumo:ele>489.5</rumo:ele>
+          </rumo:ShapingPoint>
+        </rumo:ShapingPoints>
+      </rumo:RouteExtension>
+      <gpxx:RouteExtension>
+        <gpxx:DisplayColor>Blue</gpxx:DisplayColor>
+      </gpxx:RouteExtension>
+    </extensions>
+    <rtept lat="49.384493" lon="8.802648">
+      <ele>147.5</ele>
+    </rtept>
+    <rtept lat="49.257344" lon="8.602029">
+      <ele>111.0</ele>
+      <name>Treffpunkt (A5, Parkplatz Lußhard)</name>
+    </rtept>
+    <rtept lat="48.008112" lon="7.815341">
+      <ele>245.5</ele>
+      <name>Treffpunkt (Esso Station Freiburg Sundgauallee)</name>
+    </rtept>
+    <rtept lat="47.92989" lon="6.965017">
+      <ele>489.5</ele>
+      <name>Kruth</name>
+    </rtept>
+  </rte>
+  <rte>
+    <name>Marvin</name>
+    <number>6</number>
+    <extensions>
+      <rumo:RouteExtension>
+        <rumo:DisplayColor>RED</rumo:DisplayColor>
+        <rumo:RoutingProfile>road-fast-all</rumo:RoutingProfile>
+        <rumo:ShapingPoints>
+          <rumo:ShapingPoint lat="48.442353" lon="8.686419">
+            <rumo:name>AVIA Station Hans-Joachim Eckert</rumo:name>
+            <rumo:ele>389.5</rumo:ele>
+          </rumo:ShapingPoint>
+          <rumo:ShapingPoint lat="48.008112" lon="7.815341">
+            <rumo:name>Treffpunkt (Esso Station Freiburg Sundgauallee)</rumo:name>
+            <rumo:ele>245.5</rumo:ele>
+          </rumo:ShapingPoint>
+          <rumo:ShapingPoint lat="47.92989" lon="6.965017">
+            <rumo:name>Kruth</rumo:name>
+            <rumo:ele>489.5</rumo:ele>
+          </rumo:ShapingPoint>
+        </rumo:ShapingPoints>
+      </rumo:RouteExtension>
+      <gpxx:RouteExtension>
+        <gpxx:DisplayColor>Blue</gpxx:DisplayColor>
+      </gpxx:RouteExtension>
+    </extensions>
+    <rtept lat="48.442353" lon="8.686419">
+      <ele>389.5</ele>
+      <name>AVIA Station Hans-Joachim Eckert</name>
+    </rtept>
+    <rtept lat="48.008112" lon="7.815341">
+      <ele>245.5</ele>
+      <name>Treffpunkt (Esso Station Freiburg Sundgauallee)</name>
+    </rtept>
+    <rtept lat="47.92989" lon="6.965017">
+      <ele>489.5</ele>
+      <name>Kruth</name>
+    </rtept>
+  </rte>
+</gpx>
